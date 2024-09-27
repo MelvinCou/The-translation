@@ -1,0 +1,39 @@
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          token: ${{ secrets.PAT }}
+
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends lmodern pandoc texlive-fonts-recommended texlive-latex-extra texlive-latex-recommended texlive-pictures
+          sudo npm i -g mermaid-filter
+
+      - name: Convert all md from wiki folder to pdf
+        run: |
+          find wiki -name "*.md" -exec pandoc -F mermaid-filter -f markdown -t latex -o {}.pdf {} \;
+          mv wiki/*.pdf docs
+          # Remove ".md" from pdf filenames
+          for i in docs/*.pdf; do mv "$i" "`echo $i | sed 's/\.md//'`" | true; done
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: |
+            docs/*.pdf
+          labels: documentation
+          title: Update PDFs
+          body: |
+            This PR updates the PDFs in the docs folder.
+          token: ${{ secrets.PAT }}
