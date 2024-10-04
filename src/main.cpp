@@ -15,20 +15,11 @@ and display the ID on the screen. 请连接端口A(22、21),使用RFID Unit
 */
 
 #include <M5Stack.h>
+#include "conveyor.hpp"
 
-#include "Module_GRBL_13.2.h"
-
-#define STEPMOTOR_I2C_ADDR 0x70
-
-Module_GRBL _GRBL = Module_GRBL(STEPMOTOR_I2C_ADDR);
-
-#define STEPMOTOR_SPEED "700"
-#define STEPMOTOR_DISTANCE "999999"
-
-bool shouldRotate = false;
+IConveyor *conveyor;
 
 void printStatus();
-void ensureMotorStatus();
 
 void setup()
 {
@@ -37,7 +28,8 @@ void setup()
   M5.lcd.setTextSize(2); // Set the text size to 2.  设置文字大小为2
   Wire.begin(21, 22);    // Wire init, adding the I2C bus.  Wire初始化, 加入i2c总线
   M5.Lcd.println("= Motor Test =");
-  _GRBL.Init(&Wire);
+  conveyor = new GRBLConveyor(&Wire);
+  conveyor->begin();
   printStatus();
 }
 
@@ -46,39 +38,20 @@ void loop()
 {
   if (M5.BtnA.wasPressed())
   {
-    shouldRotate = true;
+    conveyor->start();
   }
   else if (M5.BtnC.wasPressed())
   {
-    shouldRotate = false;
+    conveyor->stop();
   }
 
   if (M5.BtnB.wasPressed())
   {
-    M5.Lcd.println(_GRBL.readStatus());
+    printStatus();
   }
 
-  ensureMotorStatus();
+  conveyor->update();
   M5.update();
-}
-
-void ensureMotorStatus()
-{
-  bool isIdle = _GRBL.readIdle();
-
-  if (isIdle && shouldRotate)
-  {
-    _GRBL.sendGcode("G91"); // force incremental positioning
-    _GRBL.sendGcode("G21"); // Set the unit to milimeters
-    _GRBL.sendGcode("G1 X" STEPMOTOR_DISTANCE " Y0 Z0 F" STEPMOTOR_SPEED);
-    printStatus();
-  }
-  else if (!isIdle && !shouldRotate)
-  {
-    M5.Lcd.println("Stopping motor");
-    _GRBL.unLock();
-    printStatus();
-  }
 }
 
 void printStatus()
@@ -88,12 +61,22 @@ void printStatus()
   M5.Lcd.cursor_y = 0;
   M5.Lcd.println("= Motor Test =");
   M5.Lcd.println("A: Start B: Status C: Stop");
-  if (shouldRotate)
+
+  if (conveyor->getDesiredStatus() == ConveyorStatus::RUNNING)
   {
-    M5.Lcd.println("Motor is rotating");
+    M5.Lcd.println("Desired: running");
   }
   else
   {
-    M5.Lcd.println("Motor is stopped");
+    M5.Lcd.println("Desired: stopped");
+  }
+
+  if (conveyor->getCurrentStatus() == ConveyorStatus::RUNNING)
+  {
+    M5.Lcd.println("Current: running");
+  }
+  else
+  {
+    M5.Lcd.println("Current: stopped");
   }
 }
