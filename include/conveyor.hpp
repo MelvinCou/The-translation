@@ -41,7 +41,6 @@ private:
     Module_GRBL m_grbl;
     TwoWire *m_wire;
     ConveyorStatus m_desiredStatus;
-    int m_updateCycle;
 };
 
 #endif // !defined(EMULATE_M5)

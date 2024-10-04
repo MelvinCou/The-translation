@@ -1,41 +1,42 @@
-/*
-*******************************************************************************
-* Copyright (c) 2023 by M5Stack
-*                  Equipped with M5Core sample source code
-*                          配套  M5Core 示例源代码
-* Visit for more information: https://docs.m5stack.com/en/core/gray
-* 获取更多资料请访问: https://docs.m5stack.com/zh_CN/core/gray
-*
-* Describe: RFID.
-* Date: 2021/8/19
-*******************************************************************************
-  Please connect to Port A(22、21),Use the RFID Unit to read the Fudan card ID
-and display the ID on the screen. 请连接端口A(22、21),使用RFID Unit
-读取ID卡并在屏幕上显示。
-*/
+// #define _TASK_SLEEP_ON_IDLE_RUN // Enable 1 ms SLEEP_IDLE powerdowns between runs if no callback methods were invoked during the pass
+#define _TASK_STATUS_REQUEST // Compile with support for StatusRequest functionality - triggering tasks on status change events in addition to time only
+
+#include <TaskScheduler.h>
 
 #include <M5Stack.h>
 #include "conveyor.hpp"
 
 IConveyor *conveyor;
+Scheduler scheduler;
 
 void printStatus();
 
+void readButtons();
+Task readByttonsTask(10 * TASK_MILLISECOND, TASK_FOREVER, &readButtons, &scheduler, true);
+
+void runConveyor();
+Task runConveyorTask(100 * TASK_MILLISECOND, TASK_FOREVER, &runConveyor, &scheduler, true);
+
 void setup()
 {
-  M5.begin();            // Init M5Stack.  初始化M5Stack
-  M5.Power.begin();      // Init power  初始化电源模块
-  M5.lcd.setTextSize(2); // Set the text size to 2.  设置文字大小为2
-  Wire.begin(21, 22);    // Wire init, adding the I2C bus.  Wire初始化, 加入i2c总线
+  M5.begin();            // Init M5Stack.
+  M5.Power.begin();      // Init power
+  M5.lcd.setTextSize(2); // Set the text size to 2.
+  Wire.begin(21, 22);    // Wire init, adding the I2C bus.  Wire
   M5.Lcd.println("= Motor Test =");
   conveyor = new GRBLConveyor(&Wire);
   conveyor->begin();
   printStatus();
 }
 
-// CNC codes: https://www.cnccookbook.com/g-code-m-code-command-list-cnc-mills/
 void loop()
 {
+  scheduler.execute();
+}
+
+void readButtons()
+{
+  M5.update();
   if (M5.BtnA.wasPressed())
   {
     conveyor->start();
@@ -49,9 +50,11 @@ void loop()
   {
     printStatus();
   }
+}
 
+void runConveyor()
+{
   conveyor->update();
-  M5.update();
 }
 
 void printStatus()
