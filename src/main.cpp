@@ -1,34 +1,67 @@
 /*
 *******************************************************************************
-* Copyright (c) 2021 by  M5Stack
-*                 Equipped with M5Core sample source code
+* Copyright (c) 2023 by M5Stack
+*                  Equipped with M5Core sample source code
 *                          配套  M5Core 示例源代码
 * Visit for more information: https://docs.m5stack.com/en/core/gray
 * 获取更多资料请访问: https://docs.m5stack.com/zh_CN/core/gray
 *
-* Describe: Hello World
-* Date: 2021/7/15
-*******************************************************************************
+* Describe: BasicHTTPClient.
+* Date: 2021/8/4
+******************************************************************************
 */
+#include <Arduino.h>
+#include <HTTPClient.h>
 #include <M5Stack.h>
+#include <WiFi.h>
+#include <WiFiMulti.h>
 
-/* After M5Core is started or reset
-the program in the setUp () function will be run, and this part will only be run
-once. 在 M5Core
-启动或者复位后，即会开始执行setup()函数中的程序，该部分只会执行一次。 */
+WiFiMulti wifiMulti;
+HTTPClient http;
+
+#define SSID
+#define PASSWORD
+#define API_KEY
+#define API_URL "http://.../api/index.php/products?sortfield=t.ref&sortorder=ASC&limit=100"
+
 void setup() {
     M5.begin();        // Init M5Core.  初始化 M5Core
-    M5.Power.begin();  // Init Power module.  初始化电源模块
-    /* Power chip connected to gpio21, gpio22, I2C device
-      Set battery charging voltage and current
-      If used battery, please call this function in your project */
-    M5.Lcd.print("Hello World");  // Print text on the screen (string)
-                                  // 在屏幕上打印文本(字符串)
+    M5.Power.begin();  // Init power  初始化电源模块
+    wifiMulti.addAP(SSID, PASSWORD);  // Storage wifi configuration information.  存储wifi配置信息
+    M5.Lcd.print("\nConnecting Wifi...\n");  // print format output string on
+                                             // lcd.  串口格式化输出字符串
 }
 
-/* After the program in setup() runs, it runs the program in loop()
-The loop() function is an infinite loop in which the program runs repeatedly
-在setup()函数中的程序执行完后，会接着执行loop()函数中的程序
-loop()函数是一个死循环，其中的程序会不断的重复运行 */
 void loop() {
+    M5.Lcd.setCursor(0, 0);  // Set the cursor at (0,0).  设置光标位于(0,0)处
+    if ((wifiMulti.run() ==
+         WL_CONNECTED)) {  // wait for WiFi connection.  等待连接至wifi
+        M5.Lcd.print("[HTTP] begin...\n");
+        http.begin(API_URL);  // configure traged server and
+                                               // url.  配置被跟踪的服务器和URL
+        http.addHeader("DOLAPIKEY", API_KEY);
+
+        M5.Lcd.print("[HTTP] GET...\n");
+        int httpCode = http.GET();  // start connection and send HTTP header.
+                                    // 开始连接服务器并发送HTTP的标头
+        if (httpCode >
+            0) {  // httpCode will be negative on error.  出错时httpCode将为负值
+            M5.Lcd.printf("[HTTP] GET... code: %d\n", httpCode);
+
+            if (httpCode ==
+                HTTP_CODE_OK) {  // file found at server.  在服务器上找到文件
+                String payload = http.getString();
+                M5.Lcd.println(payload);  //打印在服务器上读取的文件.  Print
+                                          // files read on the server
+            }
+        } else {
+            M5.Lcd.printf("[HTTP] GET... failed, error: %s\n",
+                          http.errorToString(httpCode).c_str());
+        }
+        http.end();
+    } else {
+        M5.Lcd.print("connect failed");
+    }
+    delay(10000);
+    M5.Lcd.clear();  // clear the screen.  清除屏幕
 }
