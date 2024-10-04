@@ -18,7 +18,16 @@ public:
     virtual void setAccessPoint(const char* ssid, const char* password) = 0;
     virtual void setAPI(const char* api_url, const char* api_key) = 0;
 
-    virtual int sendTag(int tag) = 0;
+    /// @brief Send product tag to the server
+    /// @param product
+    /// @return default warehouse of the product
+    virtual int sendTag(int product) = 0;
+    
+    /// @brief Create a stock movement
+    /// @param warehouse_source 
+    /// @param warehouse_destination 
+    /// @param product 
+    /// @param quantity 
     virtual void sendStockMovement(int warehouse_source, int warehouse_destination, int product, int quantity) = 0;
 
     virtual HttpClientStatus getStatus() = 0;
