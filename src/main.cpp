@@ -6,6 +6,7 @@
 #include <M5Stack.h>
 #endif // defined(ENV_M5STACK)
 
+#include "Logger.hpp"
 #include "Buttons.hpp"
 #include "Conveyor.hpp"
 #include "Sorter.hpp"
@@ -30,6 +31,9 @@ Task pickRandomDirectionTask(1 * TASK_SECOND, TASK_FOREVER, &pickRandomDirection
 
 void readAndPrintTags();
 Task readAndPrintTagsTask(TAG_READER_INTERVAL, TASK_FOREVER, &readAndPrintTags, &scheduler, true);
+
+void makeHttpRequest();
+Task makeHttpRequestTask(5 * TASK_SECOND, TASK_FOREVER, &makeHttpRequest, &scheduler, true);
 
 void setup()
 {
@@ -114,4 +118,57 @@ void printStatus()
            CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor.getCurrentStatus())]);
 }
 
+#include <WiFi.h>
+#include <WiFiMulti.h>
+
+#include <HTTPClient.h>
+
+WiFiMulti wifiMulti;
+
+bool didSetup = false;
+
+void makeHttpRequest()
+{
+  if (!didSetup)
+  {
+    didSetup = true;
+    wifiMulti.addAP(HTTP_AP_SSID, HTTP_AP_PASSWORD);
+  }
+
+  LOG_INFO("Making HTTP request...\n");
+  // wait for WiFi connection
+  if ((wifiMulti.run() == WL_CONNECTED))
+  {
+
+    HTTPClient http;
+
+    Serial.print("[HTTP] begin...\n");
+    http.begin(HTTP_TARGET_URL);
+
+    LOG_INFO("[HTTP] GET...\n");
+    // start connection and send HTTP header
+    int httpCode = http.GET();
+
+    // httpCode will be negative on error
+    if (httpCode > 0)
+    {
+      // HTTP header has been send and Server response header has been handled
+      LOG_INFO("[HTTP] GET... code: %d\n", httpCode);
+
+#if LOG_LEVEL >= LOG_DEBUG
+      if (httpCode == HTTP_CODE_OK)
+      {
+        String payload = http.getString();
+        LOG_DEBUG("%s\n", payload.c_str());
+      }
+#endif // LOG_LEVEL >= LOG_DEBUG
+    }
+    else
+    {
+      LOG_INFO("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+    }
+
+    http.end();
+  }
+  // Make HTTP request here.
 }
