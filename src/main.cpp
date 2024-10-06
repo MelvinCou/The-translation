@@ -8,10 +8,12 @@
 
 #include "Buttons.hpp"
 #include "Conveyor.hpp"
+#include "Sorter.hpp"
 
 Conveyor conveyor;
 Scheduler scheduler;
 Buttons buttons;
+Sorter sorter;
 
 void printStatus();
 
@@ -20,6 +22,9 @@ Task readButtonsTask(BUTTONS_READ_INTERVAL, TASK_FOREVER, &readButtons, &schedul
 
 void runConveyor();
 Task runConveyorTask(CONVEYOR_UPDATE_INTERVAL, TASK_FOREVER, &runConveyor, &scheduler, true);
+
+void pickRandomDirection();
+Task pickRandomDirectionTask(1 * TASK_SECOND, TASK_FOREVER, &pickRandomDirection, &scheduler, true);
 
 void setup()
 {
@@ -37,6 +42,7 @@ void setup()
   conveyor.begin();
 #endif
   buttons.begin();
+  sorter.begin();
   printStatus();
 }
 
@@ -66,6 +72,12 @@ void readButtons()
 void runConveyor()
 {
   conveyor.update();
+}
+
+void pickRandomDirection()
+{
+  SorterDirection direction = static_cast<SorterDirection>(random(0, 3));
+  sorter.move(direction);
 }
 
 void printStatus()

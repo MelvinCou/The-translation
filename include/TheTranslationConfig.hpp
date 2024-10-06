@@ -33,6 +33,17 @@
 #define CONVEYOR_CURRENT_STATUS_PIN 12      //< Leave it as -1 to disable the pin
 #pragma endregion "conveyor configuration"
 
+#pragma region "sorter configuration"
+#define SORTER_SERVO_NUMBER 0
+#define SORTER_SERVO_LEFT_ANGLE 20
+#define SORTER_SERVO_MIDDLE_ANGLE 90
+#define SORTER_SERVO_RIGHT_ANGLE 160
+
+#define SORTER_DIRECTION_LEFT_PIN 32   //< Leave it as -1 to disable the pin
+#define SORTER_DIRECTION_MIDDLE_PIN 33 //< Leave it as -1 to disable the pin
+#define SORTER_DIRECTION_RIGHT_PIN 25  //< Leave it as -1 to disable the pin
+#pragma endregion "sorter configuration"
+
 #pragma region "M5 buttons configuration"
 #define BUTTONS_READ_INTERVAL 10 //< Read interval in milliseconds
 
