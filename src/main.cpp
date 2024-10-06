@@ -27,7 +27,7 @@ void setup()
   M5.begin();            // Init M5Stack.
   M5.Power.begin();      // Init power
   M5.lcd.setTextSize(2); // Set the text size to 2.
-  Wire.begin(21, 22);    // Wire init, adding the I2C bus.  Wire
+  Wire.begin(21, 22);    // Wire init, adding the I2C bus.
   conveyor.begin(&Wire);
   M5.Lcd.println("= Motor Test =");
   M5.Lcd.println("A: Start B: Status C: Stop");
@@ -71,21 +71,11 @@ void runConveyor()
 void printStatus()
 {
   Serial.println("== Status ==");
-  if (conveyor.getDesiredStatus() == ConveyorStatus::RUNNING)
-  {
-    Serial.println("Desired: running");
-  }
-  else
-  {
-    Serial.println("Desired: stopped");
-  }
-
-  if (conveyor.getCurrentStatus() == ConveyorStatus::RUNNING)
-  {
-    Serial.println("Current: running");
-  }
-  else
-  {
-    Serial.println("Current: stopped");
-  }
+  Serial.print("Desired: ");
+  char const *desired = CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor.getDesiredStatus())];
+  Serial.print(desired);
+  Serial.print("\nCurrent: ");
+  char const *current = CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor.getCurrentStatus())];
+  Serial.print(current);
+  Serial.print('\n');
 }

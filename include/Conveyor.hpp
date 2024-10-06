@@ -7,8 +7,15 @@
 
 enum class ConveyorStatus
 {
+    UNDEFINED,
     STOPPED,
     RUNNING,
+};
+
+static const char *CONVEYOR_STATUS_STRINGS[] = {
+    "UNDEFINED",
+    "STOPPED",
+    "RUNNING",
 };
 
 /// @brief Conveyor interface
@@ -35,11 +42,11 @@ public:
 
 private:
     ConveyorStatus m_desiredStatus;
+    ConveyorStatus m_currentStatus;
 #ifdef HARDWARE_GRBL
     Module_GRBL m_grbl;
     TwoWire *m_wire;
 #else
-    ConveyorStatus m_currentStatus;
     int m_motorDelay;
 #endif // defined(HARDWARE_GRBL)
 };
