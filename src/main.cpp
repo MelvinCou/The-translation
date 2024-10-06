@@ -62,15 +62,18 @@ void readButtons()
   buttons.update();
   if (buttons.BtnA->wasPressed())
   {
+    LOG_DEBUG("[BTN] A pressed\n");
     conveyor.start();
   }
   else if (buttons.BtnC->wasPressed())
   {
+    LOG_DEBUG("[BTN] C pressed\n");
     conveyor.stop();
   }
 
   if (buttons.BtnB->wasPressed())
   {
+    LOG_DEBUG("[BTN] B pressed\n");
     printStatus();
   }
 }
@@ -94,24 +97,21 @@ void readAndPrintTags()
   unsigned char size = tagReader.readTag(buffer);
   if (size > 0)
   {
-    Serial.print("New Tag: ");
+    LOG_INFO("New Tag: ");
     for (unsigned char i = 0; i < size; i++)
     {
-      Serial.print(buffer[i] < 0x10 ? " 0" : " ");
-      Serial.print(buffer[i], HEX);
+      LOG_INFO(buffer[i] < 0x10 ? " 0" : " ");
+      LOG_INFO("%hhx", buffer[i]);
     }
-    Serial.println();
+    LOG_INFO("\n");
   }
 }
 
 void printStatus()
 {
-  Serial.println("== Status ==");
-  Serial.print("Desired: ");
-  char const *desired = CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor.getDesiredStatus())];
-  Serial.print(desired);
-  Serial.print("\nCurrent: ");
-  char const *current = CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor.getCurrentStatus())];
-  Serial.print(current);
-  Serial.print('\n');
+  LOG_INFO("[CONV] Status => desired: %s, current: %s\n",
+           CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor.getDesiredStatus())],
+           CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor.getCurrentStatus())]);
+}
+
 }
