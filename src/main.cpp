@@ -1,7 +1,5 @@
 #include "TheTranslationConfig.hpp"
 
-#include <TaskScheduler.h>
-
 #ifdef ENV_M5STACK
 #include <M5Stack.h>
 #endif // defined(ENV_M5STACK)
@@ -13,27 +11,17 @@
 #include "TagReader.hpp"
 
 Conveyor conveyor;
-Scheduler scheduler;
 Buttons buttons;
 Sorter sorter;
 TagReader tagReader;
 
 void printStatus();
 
-void readButtons();
-Task readButtonsTask(BUTTONS_READ_INTERVAL, TASK_FOREVER, &readButtons, &scheduler, true);
-
-void runConveyor();
-Task runConveyorTask(CONVEYOR_UPDATE_INTERVAL, TASK_FOREVER, &runConveyor, &scheduler, true);
-
-void pickRandomDirection();
-Task pickRandomDirectionTask(1 * TASK_SECOND, TASK_FOREVER, &pickRandomDirection, &scheduler, true);
-
-void readAndPrintTags();
-Task readAndPrintTagsTask(TAG_READER_INTERVAL, TASK_FOREVER, &readAndPrintTags, &scheduler, true);
-
-void makeHttpRequest();
-Task makeHttpRequestTask(5 * TASK_SECOND, TASK_FOREVER, &makeHttpRequest, &scheduler, true);
+void readButtons(void *_nothing = nullptr);
+void runConveyor(void *_nothing = nullptr);
+void pickRandomDirection(void *nothing = nullptr);
+void readAndPrintTags(void *_nothing = nullptr);
+void makeHttpRequests(void *_nothing = nullptr);
 
 void setup()
 {
@@ -54,61 +42,98 @@ void setup()
   sorter.begin();
   tagReader.begin();
   printStatus();
+
+  xTaskCreatePinnedToCore(&readButtons, "readButtons", 1024, nullptr, 8, nullptr, 0);
+  xTaskCreatePinnedToCore(&runConveyor, "runConveyor", 1024, nullptr, 8, nullptr, 0);
+  xTaskCreatePinnedToCore(&pickRandomDirection, "pickRandomDirection", 1024, nullptr, 8, nullptr, 0);
+  xTaskCreatePinnedToCore(&readAndPrintTags, "readAndPrintTags", 1024, nullptr, 8, nullptr, 0);
+  xTaskCreatePinnedToCore(&makeHttpRequests, "makeHttpRequests", 4096, nullptr, 8, nullptr, 1);
 }
 
 void loop()
 {
-  scheduler.execute();
+  // nothing to do!
 }
 
-void readButtons()
+void readButtons(void *_nothing)
 {
-  buttons.update();
-  if (buttons.BtnA->wasPressed())
+  for (;;)
   {
-    LOG_DEBUG("[BTN] A pressed\n");
-    conveyor.start();
-  }
-  else if (buttons.BtnC->wasPressed())
-  {
-    LOG_DEBUG("[BTN] C pressed\n");
-    conveyor.stop();
-  }
-
-  if (buttons.BtnB->wasPressed())
-  {
-    LOG_DEBUG("[BTN] B pressed\n");
-    printStatus();
-  }
-}
-
-void runConveyor()
-{
-  conveyor.update();
-}
-
-void pickRandomDirection()
-{
-  SorterDirection direction = static_cast<SorterDirection>(random(0, 3));
-  sorter.move(direction);
-}
-
-void readAndPrintTags()
-{
-  if (!tagReader.isNewTagPresent())
-    return;
-  unsigned char buffer[10];
-  unsigned char size = tagReader.readTag(buffer);
-  if (size > 0)
-  {
-    LOG_INFO("New Tag: ");
-    for (unsigned char i = 0; i < size; i++)
+    buttons.update();
+    if (buttons.BtnA->wasPressed())
     {
-      LOG_INFO(buffer[i] < 0x10 ? " 0" : " ");
-      LOG_INFO("%hhx", buffer[i]);
+      LOG_DEBUG("[BTN] A pressed\n");
+      conveyor.start();
     }
-    LOG_INFO("\n");
+    else if (buttons.BtnC->wasPressed())
+    {
+      LOG_DEBUG("[BTN] C pressed\n");
+      conveyor.stop();
+    }
+
+    if (buttons.BtnB->wasPressed())
+    {
+      LOG_DEBUG("[BTN] B pressed\n");
+      printStatus();
+    }
+
+    vTaskDelay(BUTTONS_READ_INTERVAL / portTICK_PERIOD_MS);
   }
+
+  // FreeRTOS tasks are not allowed to return
+  vTaskDelete(nullptr);
+}
+
+void runConveyor(void *_nothing)
+{
+  for (;;)
+  {
+    conveyor.update();
+    vTaskDelay(CONVEYOR_UPDATE_INTERVAL / portTICK_PERIOD_MS);
+  }
+
+  // FreeRTOS tasks are not allowed to return
+  vTaskDelete(nullptr);
+}
+
+void pickRandomDirection(void *_nothing)
+{
+  for (;;)
+  {
+    SorterDirection direction = static_cast<SorterDirection>(random(0, 3));
+    sorter.move(direction);
+
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
+
+  // FreeRTOS tasks are not allowed to return
+  vTaskDelete(nullptr);
+}
+
+void readAndPrintTags(void *_nothing)
+{
+  for (;;)
+  {
+    if (tagReader.isNewTagPresent())
+    {
+      unsigned char buffer[10];
+      unsigned char size = tagReader.readTag(buffer);
+      if (size > 0)
+      {
+        LOG_INFO("New Tag: ");
+        for (unsigned char i = 0; i < size; i++)
+        {
+          LOG_INFO(buffer[i] < 0x10 ? " 0" : " ");
+          LOG_INFO("%hhx", buffer[i]);
+        }
+        LOG_INFO("\n");
+      }
+    }
+    vTaskDelay(TAG_READER_INTERVAL / portTICK_PERIOD_MS);
+  }
+
+  // FreeRTOS tasks are not allowed to return
+  vTaskDelete(nullptr);
 }
 
 void printStatus()
@@ -119,33 +144,30 @@ void printStatus()
 }
 
 #include <WiFi.h>
-#include <WiFiMulti.h>
 
 #include <HTTPClient.h>
 
-WiFiMulti wifiMulti;
-
-bool didSetup = false;
-
-void makeHttpRequest()
+void makeHttpRequests(void *_nothing)
 {
-  if (!didSetup)
+  WiFi.mode(WIFI_STA); // connect to access point
+  WiFi.begin(HTTP_AP_SSID, HTTP_AP_PASSWORD);
+  LOG_INFO("[HTTP] Connecting to WIFI");
+
+  while (WiFi.status() != WL_CONNECTED)
   {
-    didSetup = true;
-    wifiMulti.addAP(HTTP_AP_SSID, HTTP_AP_PASSWORD);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+    LOG_INFO(".");
   }
+  LOG_INFO("\n[HTTP] Connected!\n");
 
-  LOG_INFO("Making HTTP request...\n");
-  // wait for WiFi connection
-  if ((wifiMulti.run() == WL_CONNECTED))
+  for (;;)
   {
-
     HTTPClient http;
 
-    Serial.print("[HTTP] begin...\n");
+    LOG_INFO("[HTTP] Making HTTP request...\n");
     http.begin(HTTP_TARGET_URL);
 
-    LOG_INFO("[HTTP] GET...\n");
+    LOG_INFO("[HTTP] GET...");
     // start connection and send HTTP header
     int httpCode = http.GET();
 
@@ -153,9 +175,9 @@ void makeHttpRequest()
     if (httpCode > 0)
     {
       // HTTP header has been send and Server response header has been handled
-      LOG_INFO("[HTTP] GET... code: %d\n", httpCode);
+      LOG_INFO(" code: %d\n", httpCode);
 
-#if LOG_LEVEL >= LOG_DEBUG
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
       if (httpCode == HTTP_CODE_OK)
       {
         String payload = http.getString();
@@ -165,10 +187,13 @@ void makeHttpRequest()
     }
     else
     {
-      LOG_INFO("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+      LOG_INFO(" failed, error: %s\n", http.errorToString(httpCode).c_str());
     }
 
     http.end();
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
   }
-  // Make HTTP request here.
+
+  // FreeRTOS tasks are not allowed to return
+  vTaskDelete(nullptr);
 }
