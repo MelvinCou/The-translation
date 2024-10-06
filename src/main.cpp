@@ -1,31 +1,42 @@
-// #define _TASK_SLEEP_ON_IDLE_RUN // Enable 1 ms SLEEP_IDLE powerdowns between runs if no callback methods were invoked during the pass
-#define _TASK_STATUS_REQUEST // Compile with support for StatusRequest functionality - triggering tasks on status change events in addition to time only
+#include "TheTranslationConfig.hpp"
 
 #include <TaskScheduler.h>
 
+#ifdef ENV_M5STACK
 #include <M5Stack.h>
-#include "conveyor.hpp"
+#endif // defined(ENV_M5STACK)
 
-IConveyor *conveyor;
+#include "Buttons.hpp"
+#include "Conveyor.hpp"
+
+Conveyor conveyor;
 Scheduler scheduler;
+Buttons buttons;
 
 void printStatus();
 
 void readButtons();
-Task readByttonsTask(10 * TASK_MILLISECOND, TASK_FOREVER, &readButtons, &scheduler, true);
+Task readButtonsTask(BUTTONS_READ_INTERVAL, TASK_FOREVER, &readButtons, &scheduler, true);
 
 void runConveyor();
-Task runConveyorTask(100 * TASK_MILLISECOND, TASK_FOREVER, &runConveyor, &scheduler, true);
+Task runConveyorTask(CONVEYOR_UPDATE_INTERVAL, TASK_FOREVER, &runConveyor, &scheduler, true);
 
 void setup()
 {
+#ifdef ENV_M5STACK
   M5.begin();            // Init M5Stack.
   M5.Power.begin();      // Init power
   M5.lcd.setTextSize(2); // Set the text size to 2.
   Wire.begin(21, 22);    // Wire init, adding the I2C bus.  Wire
+  conveyor.begin(&Wire);
   M5.Lcd.println("= Motor Test =");
-  conveyor = new GRBLConveyor(&Wire);
-  conveyor->begin();
+  M5.Lcd.println("A: Start B: Status C: Stop");
+#else
+  Serial.begin(115200);
+  Serial.flush();
+  conveyor.begin();
+#endif
+  buttons.begin();
   printStatus();
 }
 
@@ -36,17 +47,17 @@ void loop()
 
 void readButtons()
 {
-  M5.update();
-  if (M5.BtnA.wasPressed())
+  buttons.update();
+  if (buttons.BtnA->wasPressed())
   {
-    conveyor->start();
+    conveyor.start();
   }
-  else if (M5.BtnC.wasPressed())
+  else if (buttons.BtnC->wasPressed())
   {
-    conveyor->stop();
+    conveyor.stop();
   }
 
-  if (M5.BtnB.wasPressed())
+  if (buttons.BtnB->wasPressed())
   {
     printStatus();
   }
@@ -54,32 +65,27 @@ void readButtons()
 
 void runConveyor()
 {
-  conveyor->update();
+  conveyor.update();
 }
 
 void printStatus()
 {
-  M5.Lcd.clearDisplay();
-  M5.Lcd.cursor_x = 0;
-  M5.Lcd.cursor_y = 0;
-  M5.Lcd.println("= Motor Test =");
-  M5.Lcd.println("A: Start B: Status C: Stop");
-
-  if (conveyor->getDesiredStatus() == ConveyorStatus::RUNNING)
+  Serial.println("== Status ==");
+  if (conveyor.getDesiredStatus() == ConveyorStatus::RUNNING)
   {
-    M5.Lcd.println("Desired: running");
+    Serial.println("Desired: running");
   }
   else
   {
-    M5.Lcd.println("Desired: stopped");
+    Serial.println("Desired: stopped");
   }
 
-  if (conveyor->getCurrentStatus() == ConveyorStatus::RUNNING)
+  if (conveyor.getCurrentStatus() == ConveyorStatus::RUNNING)
   {
-    M5.Lcd.println("Current: running");
+    Serial.println("Current: running");
   }
   else
   {
-    M5.Lcd.println("Current: stopped");
+    Serial.println("Current: stopped");
   }
 }
