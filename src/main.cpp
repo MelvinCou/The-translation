@@ -9,11 +9,13 @@
 #include "Buttons.hpp"
 #include "Conveyor.hpp"
 #include "Sorter.hpp"
+#include "TagReader.hpp"
 
 Conveyor conveyor;
 Scheduler scheduler;
 Buttons buttons;
 Sorter sorter;
+TagReader tagReader;
 
 void printStatus();
 
@@ -25,6 +27,9 @@ Task runConveyorTask(CONVEYOR_UPDATE_INTERVAL, TASK_FOREVER, &runConveyor, &sche
 
 void pickRandomDirection();
 Task pickRandomDirectionTask(1 * TASK_SECOND, TASK_FOREVER, &pickRandomDirection, &scheduler, true);
+
+void readAndPrintTags();
+Task readAndPrintTagsTask(TAG_READER_INTERVAL, TASK_FOREVER, &readAndPrintTags, &scheduler, true);
 
 void setup()
 {
@@ -43,6 +48,7 @@ void setup()
 #endif
   buttons.begin();
   sorter.begin();
+  tagReader.begin();
   printStatus();
 }
 
@@ -78,6 +84,24 @@ void pickRandomDirection()
 {
   SorterDirection direction = static_cast<SorterDirection>(random(0, 3));
   sorter.move(direction);
+}
+
+void readAndPrintTags()
+{
+  if (!tagReader.isNewTagPresent())
+    return;
+  unsigned char buffer[10];
+  unsigned char size = tagReader.readTag(buffer);
+  if (size > 0)
+  {
+    Serial.print("New Tag: ");
+    for (unsigned char i = 0; i < size; i++)
+    {
+      Serial.print(buffer[i] < 0x10 ? " 0" : " ");
+      Serial.print(buffer[i], HEX);
+    }
+    Serial.println();
+  }
 }
 
 void printStatus()
