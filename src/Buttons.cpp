@@ -23,6 +23,7 @@ Buttons::~Buttons()
 
 void Buttons::begin()
 {
+    // Note: not all GPIO pins support pull-up resistors, so it is important to check the datasheet for the specific ESP32 module being used.
     BtnA = new Button(SIMPLE_BUTTON_A_PIN, SIMPLE_BUTTONS_DEBOUNCE_MS, false, true);
     BtnB = new Button(SIMPLE_BUTTON_B_PIN, SIMPLE_BUTTONS_DEBOUNCE_MS, false, true);
     BtnC = new Button(SIMPLE_BUTTON_C_PIN, SIMPLE_BUTTONS_DEBOUNCE_MS, false, true);
