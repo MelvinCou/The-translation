@@ -53,4 +53,8 @@
 #define SIMPLE_BUTTON_C_PIN 15
 #pragma endregion "M5 buttons configuration"
 
+#pragma region "tag reader configuration"
+#define TAG_READER_INTERVAL 100 //< Read interval in milliseconds
+#pragma endregion "tag reader configuration"
+
 #endif // !defined(THE_TRANSLATION_CONFIG_HPP)
