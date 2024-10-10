@@ -1,0 +1,16 @@
+{
+    "name": "the-translation-support-server",
+    "version": "0.1.0",
+    "type": "module",
+    "scripts": {
+        "start": "node index.js",
+        "format": "prettier --write ."
+    },
+    "license": "ISC",
+    "devDependencies": {
+        "prettier": "^3.3.3"
+    },
+    "dependencies": {
+        "express": "^4.21.0"
+    }
+}

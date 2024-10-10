@@ -3,13 +3,21 @@
 #include "TagReader.hpp"
 
 #ifdef HARDWARE_MFRC522
+#include <MFRC522.h>
+
+MFRC522 mfrc522(SS, UINT8_MAX);
+#elif defined(HARDWARE_MFRC522_I2C)
 #include <MFRC522_I2C.h>
 
 MFRC522_I2C mfrc522(0x28, 0);
+#endif
+
+#if defined(HARDWARE_MFRC522) || defined(HARDWARE_MFRC522_I2C)
 
 void TagReader::begin()
 {
     mfrc522.PCD_Init();
+    mfrc522.PCD_DumpVersionToSerial();
 }
 
 bool TagReader::isNewTagPresent()
@@ -41,4 +49,4 @@ unsigned char TagReader::readTag(unsigned char *buffer)
     return 0;
 }
 
-#endif // defined(HARDWARE_MFRC522)
+#endif // defined(HARDWARE_MFRC522) || defined(HARDWARE_MFRC522_I2C)
