@@ -167,7 +167,8 @@ void makeHttpRequests(void *_nothing)
     HTTPClient http;
 
     LOG_INFO("[HTTP] Making HTTP request...\n");
-    http.begin(HTTP_TARGET_URL);
+    http.begin(DOLIBARR_API_URL);
+    http.addHeader("DOLAPIKEY", DOLIBARR_API_KEY);
 
     LOG_INFO("[HTTP] GET...");
     // start connection and send HTTP header

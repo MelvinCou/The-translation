@@ -61,7 +61,11 @@
 #pragma region "http configuration"
 #define HTTP_AP_SSID "your_wifi_ssid_here"
 #define HTTP_AP_PASSWORD "your_wifi_password_here"
-#define HTTP_TARGET_URL "http://192.168.240.78:8080"
 #pragma endregion "http configuration"
+
+#pragma region "dolibarr configuration"
+#define DOLIBARR_API_KEY ""
+#define DOLIBARR_API_URL "http://.../api/index.php/products?sortfield=t.ref&sortorder=ASC&limit=100"
+#pragma endregion "dolibarr configuration"
 
 #endif // !defined(THE_TRANSLATION_CONFIG_HPP)
