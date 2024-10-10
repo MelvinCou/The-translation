@@ -2,6 +2,8 @@
 
 #ifdef ENV_M5STACK
 #include <M5Stack.h>
+#else
+#include <SPI.h>
 #endif // defined(ENV_M5STACK)
 
 #include "Logger.hpp"
@@ -25,6 +27,7 @@ void makeHttpRequests(void *_nothing = nullptr);
 
 void setup()
 {
+  Serial.begin(115200);
 #ifdef ENV_M5STACK
   M5.begin();            // Init M5Stack.
   M5.Power.begin();      // Init power
@@ -34,19 +37,18 @@ void setup()
   M5.Lcd.println("= Motor Test =");
   M5.Lcd.println("A: Start B: Status C: Stop");
 #else
-  Serial.begin(115200);
-  Serial.flush();
   conveyor.begin();
+  Serial.flush();
 #endif
   buttons.begin();
   sorter.begin();
   tagReader.begin();
   printStatus();
 
-  xTaskCreatePinnedToCore(&readButtons, "readButtons", 1024, nullptr, 8, nullptr, 0);
-  xTaskCreatePinnedToCore(&runConveyor, "runConveyor", 1024, nullptr, 8, nullptr, 0);
-  xTaskCreatePinnedToCore(&pickRandomDirection, "pickRandomDirection", 1024, nullptr, 8, nullptr, 0);
-  xTaskCreatePinnedToCore(&readAndPrintTags, "readAndPrintTags", 1024, nullptr, 8, nullptr, 0);
+  xTaskCreatePinnedToCore(&readButtons, "readButtons", 4096, nullptr, 8, nullptr, 0);
+  xTaskCreatePinnedToCore(&runConveyor, "runConveyor", 4096, nullptr, 8, nullptr, 0);
+  xTaskCreatePinnedToCore(&pickRandomDirection, "pickRandomDirection", 4096, nullptr, 8, nullptr, 0);
+  xTaskCreatePinnedToCore(&readAndPrintTags, "readAndPrintTags", 4096, nullptr, 8, nullptr, 0);
   xTaskCreatePinnedToCore(&makeHttpRequests, "makeHttpRequests", 4096, nullptr, 8, nullptr, 1);
 }
 
