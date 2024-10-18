@@ -112,6 +112,8 @@ void pickRandomDirection(void *_nothing)
   vTaskDelete(nullptr);
 }
 
+String tag = "";
+
 void readAndPrintTags(void *_nothing)
 {
   for (;;)
@@ -122,13 +124,14 @@ void readAndPrintTags(void *_nothing)
       unsigned char size = tagReader.readTag(buffer);
       if (size > 0)
       {
-        LOG_INFO("New Tag: ");
+        tag = "";
         for (unsigned char i = 0; i < size; i++)
         {
-          LOG_INFO(buffer[i] < 0x10 ? " 0" : " ");
-          LOG_INFO("%hhx", buffer[i]);
+          char two[3];
+          sniprintf(two, sizeof(two), "%02x", buffer[i]);
+          tag += two;
         }
-        LOG_INFO("\n");
+        LOG_INFO("New Tag %s\n", tag);
       }
     }
     vTaskDelay(TAG_READER_INTERVAL / portTICK_PERIOD_MS);
@@ -166,8 +169,12 @@ void makeHttpRequests(void *_nothing)
   {
     HTTPClient http;
 
-    LOG_INFO("[HTTP] Making HTTP request...\n");
-    http.begin(HTTP_TARGET_URL);
+    char url[48];
+    snprintf(url, sizeof(url), "%s/%s", DOLIBARR_API_URL, tag);
+
+    LOG_INFO("[HTTP] Making HTTP request to %s...\n", url);
+    http.begin(url);
+    http.addHeader("DOLAPIKEY", DOLIBARR_API_KEY);
 
     LOG_INFO("[HTTP] GET...");
     // start connection and send HTTP header
