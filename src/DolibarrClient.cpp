@@ -96,3 +96,31 @@ int DolibarrClient::sendTag(String barcode) {
     return value;
 }
 
+void DolibarrClient::sendStockMovement(int warehouse_source, int product, int quantity) {
+    status = DolibarrClientStatus::SENDING;
+
+    // Prepare JSON document
+    String body;
+    JsonDocument doc;
+    doc["warehouse_id"] = warehouse_source;
+    doc["product_id"] = product;
+    doc["qty"] = quantity;
+
+    unsigned int _ = serializeJson(doc, body);
+
+    client.begin(stockMovementEndpoint);
+    client.addHeader("DOLAPIKEY", key);
+
+    int httpCode = client.POST(body);
+
+    if (httpCode == HTTP_CODE_OK)
+    {
+        status = DolibarrClientStatus::READY;
+    } else {
+        status = DolibarrClientStatus::ERROR;
+        
+        LOG_ERROR("[HTTP] Error during sendTag request: %s\n", client.errorToString(httpCode).c_str());
+    }
+
+    client.end();
+}
