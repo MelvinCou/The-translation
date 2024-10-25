@@ -56,3 +56,43 @@ DolibarrClientStatus DolibarrClient::configure(const char* endpoint, const char*
 DolibarrClientStatus DolibarrClient::getStatus() {
     return status;
 }
+
+int DolibarrClient::sendTag(String barcode) {
+    status = DolibarrClientStatus::SENDING;
+
+    int value = -1;
+    String endpoint = String(tagEndpoint);
+    bool _ = endpoint.concat(barcode);
+    _ = endpoint.concat("')");
+
+    client.begin(endpoint);
+    client.addHeader("DOLAPIKEY", key);
+
+    int httpCode = client.GET();
+    endpoint.clear();
+
+    if (httpCode == HTTP_CODE_OK)
+    {
+        status = DolibarrClientStatus::READY;
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, client.getStream());
+        client.end();
+
+        if(error) {
+            status = DolibarrClientStatus::ERROR;
+            LOG_ERROR("[HTTP] Error deserializing sendTag payload: %s\n", error.c_str());
+        } else {
+            value = doc[0]["fk_default_warehouse"].as<int>();
+
+            LOG_DEBUG("[HTTP] default warehouse of %s: %u\n", barcode.c_str(), value);
+        }
+    } else {
+        status = DolibarrClientStatus::ERROR;
+        
+        LOG_ERROR("[HTTP] Error during sendTag request: %s\n", client.errorToString(httpCode).c_str());
+        client.end();
+    }
+
+    return value;
+}
+
