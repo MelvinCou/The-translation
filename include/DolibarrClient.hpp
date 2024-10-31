@@ -22,9 +22,10 @@ public:
     DolibarrClientStatus configure(const char* endpoint, const char* key);
 
     /// @brief Send product tag to the server
-    /// @param product
-    /// @return default warehouse of the product
-    int sendTag(String barcode);
+    /// @param barcode barcode of the product
+    /// @param product product id associeted with the barecode
+    /// @param warehouse default warehouse of the product
+    void sendTag(const String barcode, int& product, int& warehouse);
     
     /// @brief Create a stock movement
     /// @param warehouse_source 

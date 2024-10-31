@@ -47,6 +47,13 @@
 #pragma region "dolibarr configuration"
 #define DOLIBARR_API_KEY ""
 #define DOLIBARR_API_URL "http://.../api/index.php"
+#define DOLIBARR_WAREHOUSE_ERROR 3
+
+#define DOLIBARR_HEADER_APIKEY "DOLAPIKEY"
+#define DOLIBARR_ENDPOINT_STATUS "/status"
+#define DOLIBARR_ENDPOINT_PRODUCTS "/products?limit=1&mode=1&sqlfilters=(t.barcode%3A%3D%3A'"
+#define DOLIBARR_ENDPOINT_PRODUCTS_END "')"
+#define DOLIBARR_ENDPOINT_STOCKMOVEMENTS "/stockmovements"
 #pragma endregion "dolibarr configuration"
 
 #endif // !defined(THE_TRANSLATION_CONFIG_HPP)
