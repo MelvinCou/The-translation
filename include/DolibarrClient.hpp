@@ -28,10 +28,10 @@ public:
     void sendTag(const String barcode, int& product, int& warehouse);
     
     /// @brief Create a stock movement
-    /// @param warehouse_source 
+    /// @param warehouse
     /// @param product 
     /// @param quantity 
-    void sendStockMovement(int warehouse_source, int product, int quantity);
+    void sendStockMovement(int warehouse, int product, int quantity);
 
     DolibarrClientStatus getStatus();
 private:
