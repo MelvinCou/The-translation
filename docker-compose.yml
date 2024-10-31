@@ -4,8 +4,9 @@ services:
     image: tuxgasy/dolibarr:14.0.2
     container_name: dolibarr
     ports:
-      - "80:80"
+      - "8080:80"
     environment:
+      - DOLI_URL_ROOT=http://localhost:8080
       - DOLI_DB_HOST=dolibarr-mariadb
       - DOLI_DB_USER=epitech
       - DOLI_DB_PASSWORD=epitech13
@@ -27,19 +28,6 @@ services:
       - MYSQL_DATABASE=dolibarr
       - MYSQL_USER=epitech
       - MYSQL_PASSWORD=epitech13
-
-  # PHPMyAdmin
-  dolibarr-phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: dolibarr-phpmyadmin
-    ports:
-      - "8085:80"
-    environment:
-      - PMA_ARBITRARY=1
-      - PMA_HOST=dolibarr-mariadb
-      - PMA_PORT=3306
-      - PMA_USER=epitech
-      - PMA_PASSWORD=epitech13
 
 volumes:
   data:
