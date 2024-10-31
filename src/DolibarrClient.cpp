@@ -86,23 +86,25 @@ void DolibarrClient::sendTag(const String barcode, int& product, int& warehouse)
             LOG_DEBUG("[HTTP] barecode %s: id %u ; warehouse %u \n", barcode.c_str(), product, warehouse);
             status = DolibarrClientStatus::READY;
         }
+
+        doc.clear();
     } else {
+        client.end();
         status = DolibarrClientStatus::ERROR;
         
         LOG_ERROR("[HTTP] Error during sendTag request: %s\n", client.errorToString(httpCode).c_str());
-        client.end();
 
         warehouse = DOLIBARR_WAREHOUSE_ERROR;
     }
 }
 
-void DolibarrClient::sendStockMovement(int warehouse_source, int product, int quantity) {
+void DolibarrClient::sendStockMovement(int warehouse, int product, int quantity) {
     status = DolibarrClientStatus::SENDING;
 
     // Prepare JSON document
     String body;
     JsonDocument doc;
-    doc["warehouse_id"] = warehouse_source;
+    doc["warehouse_id"] = warehouse;
     doc["product_id"] = product;
     doc["qty"] = quantity;
 
@@ -112,6 +114,9 @@ void DolibarrClient::sendStockMovement(int warehouse_source, int product, int qu
     client.addHeader(DOLIBARR_HEADER_APIKEY, key);
 
     int httpCode = client.POST(body);
+    client.end();
+    body.clear();
+    doc.clear();
 
     if (httpCode == HTTP_CODE_OK)
     {
@@ -120,7 +125,5 @@ void DolibarrClient::sendStockMovement(int warehouse_source, int product, int qu
         status = DolibarrClientStatus::ERROR;
         
         LOG_ERROR("[HTTP] Error during sendTag request: %s\n", client.errorToString(httpCode).c_str());
-    }
-
-    client.end();
+    }    
 }
