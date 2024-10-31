@@ -1,0 +1,39 @@
+name: PlatformIO CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+            .pio
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+
+
+      - name: Build PlatformIO m5stack-core2
+        run: pio run --environment m5stack-core2
+
+      - name: Build PlatformIO esp32-bare
+        run: pio run --environment esp32-bare
+
+      - name: Build PlatformIO esp32-mfrc522
+        run: pio run --environment esp32-mfrc522
