@@ -3,8 +3,8 @@
 
 #pragma region "conveyor configuration"
 #define CONVEYOR_GRBL_I2C_ADDR 0x70
-#define CONVEYOR_MOTOR_SPEED "700"
-#define CONVEYOR_MOTOR_DISTANCE "999999"
+#define CONVEYOR_MOTOR_SPEED "350"
+#define CONVEYOR_MOTOR_DISTANCE "999"
 #define CONVEYOR_UPDATE_INTERVAL 100 //< Update interval in milliseconds
 
 #define CONVEYOR_SIMULATED_DELAY_UPDATES 10 //< Simulated amount of updates for the motor to start or stop
@@ -14,9 +14,10 @@
 
 #pragma region "sorter configuration"
 #define SORTER_SERVO_NUMBER 0
-#define SORTER_SERVO_LEFT_ANGLE 20
-#define SORTER_SERVO_MIDDLE_ANGLE 90
-#define SORTER_SERVO_RIGHT_ANGLE 160
+#define SORTER_SERVO_PULSE_WIDTH 1500
+#define SORTER_SERVO_LEFT_ANGLE 53
+#define SORTER_SERVO_MIDDLE_ANGLE 30
+#define SORTER_SERVO_RIGHT_ANGLE 20
 
 #define SORTER_DIRECTION_LEFT_PIN 32   //< Leave it as -1 to disable the pin
 #define SORTER_DIRECTION_MIDDLE_PIN 33 //< Leave it as -1 to disable the pin
