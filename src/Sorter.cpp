@@ -13,8 +13,8 @@ GoPlus2 goPlus;
 
 void Sorter::begin()
 {
-    // May not be needed on real hardware, we'll see...
-    // goPlus.begin();
+    goPlus.begin();
+    goPlus.Servo_write_plusewidth(SORTER_SERVO_NUMBER, SORTER_SERVO_PULSE_WIDTH);
 }
 
 void Sorter::move(SorterDirection direction)
