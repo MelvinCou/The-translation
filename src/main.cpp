@@ -4,11 +4,11 @@
 #include <M5Stack.h>
 #else
 #include <SPI.h>
-#endif // defined(ENV_M5STACK)
+#endif  // defined(ENV_M5STACK)
 
-#include "Logger.hpp"
 #include "Buttons.hpp"
 #include "Conveyor.hpp"
+#include "Logger.hpp"
 #include "Sorter.hpp"
 #include "TagReader.hpp"
 
@@ -25,14 +25,13 @@ void pickRandomDirection(void *nothing = nullptr);
 void readAndPrintTags(void *_nothing = nullptr);
 void makeHttpRequests(void *_nothing = nullptr);
 
-void setup()
-{
+void setup() {
   Serial.begin(115200);
 #ifdef ENV_M5STACK
-  M5.begin();            // Init M5Stack.
-  M5.Power.begin();      // Init power
-  M5.lcd.setTextSize(2); // Set the text size to 2.
-  Wire.begin(21, 22);    // Wire init, adding the I2C bus.
+  M5.begin();             // Init M5Stack.
+  M5.Power.begin();       // Init power
+  M5.lcd.setTextSize(2);  // Set the text size to 2.
+  Wire.begin(21, 22);     // Wire init, adding the I2C bus.
   conveyor.begin(&Wire);
   M5.Lcd.println("= Motor Test =");
   M5.Lcd.println("A: Start B: Status C: Stop");
@@ -52,29 +51,22 @@ void setup()
   xTaskCreatePinnedToCore(&makeHttpRequests, "makeHttpRequests", 4096, nullptr, 8, nullptr, 1);
 }
 
-void loop()
-{
+void loop() {
   // nothing to do!
 }
 
-void readButtons(void *_nothing)
-{
-  for (;;)
-  {
+void readButtons(void *_nothing) {
+  for (;;) {
     buttons.update();
-    if (buttons.BtnA->wasPressed())
-    {
+    if (buttons.BtnA->wasPressed()) {
       LOG_DEBUG("[BTN] A pressed\n");
       conveyor.start();
-    }
-    else if (buttons.BtnC->wasPressed())
-    {
+    } else if (buttons.BtnC->wasPressed()) {
       LOG_DEBUG("[BTN] C pressed\n");
       conveyor.stop();
     }
 
-    if (buttons.BtnB->wasPressed())
-    {
+    if (buttons.BtnB->wasPressed()) {
       LOG_DEBUG("[BTN] B pressed\n");
       printStatus();
     }
@@ -86,10 +78,8 @@ void readButtons(void *_nothing)
   vTaskDelete(nullptr);
 }
 
-void runConveyor(void *_nothing)
-{
-  for (;;)
-  {
+void runConveyor(void *_nothing) {
+  for (;;) {
     conveyor.update();
     vTaskDelay(CONVEYOR_UPDATE_INTERVAL / portTICK_PERIOD_MS);
   }
@@ -98,10 +88,8 @@ void runConveyor(void *_nothing)
   vTaskDelete(nullptr);
 }
 
-void pickRandomDirection(void *_nothing)
-{
-  for (;;)
-  {
+void pickRandomDirection(void *_nothing) {
+  for (;;) {
     SorterDirection direction = static_cast<SorterDirection>(random(0, 3));
     sorter.move(direction);
 
@@ -114,19 +102,14 @@ void pickRandomDirection(void *_nothing)
 
 String tag = "";
 
-void readAndPrintTags(void *_nothing)
-{
-  for (;;)
-  {
-    if (tagReader.isNewTagPresent())
-    {
+void readAndPrintTags(void *_nothing) {
+  for (;;) {
+    if (tagReader.isNewTagPresent()) {
       unsigned char buffer[10];
       unsigned char size = tagReader.readTag(buffer);
-      if (size > 0)
-      {
+      if (size > 0) {
         tag = "";
-        for (unsigned char i = 0; i < size; i++)
-        {
+        for (unsigned char i = 0; i < size; i++) {
           char two[3];
           sniprintf(two, sizeof(two), "%02x", buffer[i]);
           tag += two;
@@ -141,32 +124,26 @@ void readAndPrintTags(void *_nothing)
   vTaskDelete(nullptr);
 }
 
-void printStatus()
-{
-  LOG_INFO("[CONV] Status => desired: %s, current: %s\n",
-           CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor.getDesiredStatus())],
+void printStatus() {
+  LOG_INFO("[CONV] Status => desired: %s, current: %s\n", CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor.getDesiredStatus())],
            CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor.getCurrentStatus())]);
 }
 
+#include <HTTPClient.h>
 #include <WiFi.h>
 
-#include <HTTPClient.h>
-
-void makeHttpRequests(void *_nothing)
-{
-  WiFi.mode(WIFI_STA); // connect to access point
+void makeHttpRequests(void *_nothing) {
+  WiFi.mode(WIFI_STA);  // connect to access point
   WiFi.begin(HTTP_AP_SSID, HTTP_AP_PASSWORD);
   LOG_INFO("[HTTP] Connecting to WIFI");
 
-  while (WiFi.status() != WL_CONNECTED)
-  {
+  while (WiFi.status() != WL_CONNECTED) {
     vTaskDelay(500 / portTICK_PERIOD_MS);
     LOG_INFO(".");
   }
   LOG_INFO("\n[HTTP] Connected!\n");
 
-  for (;;)
-  {
+  for (;;) {
     HTTPClient http;
 
     char url[48];
@@ -181,21 +158,17 @@ void makeHttpRequests(void *_nothing)
     int httpCode = http.GET();
 
     // httpCode will be negative on error
-    if (httpCode > 0)
-    {
+    if (httpCode > 0) {
       // HTTP header has been send and Server response header has been handled
       LOG_INFO(" code: %d\n", httpCode);
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-      if (httpCode == HTTP_CODE_OK)
-      {
+      if (httpCode == HTTP_CODE_OK) {
         String payload = http.getString();
         LOG_DEBUG("%s\n", payload.c_str());
       }
-#endif // LOG_LEVEL >= LOG_DEBUG
-    }
-    else
-    {
+#endif  // LOG_LEVEL >= LOG_DEBUG
+    } else {
       LOG_INFO(" failed, error: %s\n", http.errorToString(httpCode).c_str());
     }
 

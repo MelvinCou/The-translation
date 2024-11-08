@@ -3,13 +3,12 @@
 
 #ifdef HARDWARE_GRBL
 #include "Module_GRBL_13.2.h"
-#endif // defined(HARDWARE_GRBL)
+#endif  // defined(HARDWARE_GRBL)
 
-enum class ConveyorStatus
-{
-    UNDEFINED,
-    STOPPED,
-    RUNNING,
+enum class ConveyorStatus {
+  UNDEFINED,
+  STOPPED,
+  RUNNING,
 };
 
 static const char *CONVEYOR_STATUS_STRINGS[] = {
@@ -19,36 +18,35 @@ static const char *CONVEYOR_STATUS_STRINGS[] = {
 };
 
 /// @brief Conveyor interface
-class Conveyor
-{
-public:
-    Conveyor();
-    ~Conveyor() = default;
+class Conveyor {
+ public:
+  Conveyor();
+  ~Conveyor() = default;
 
 #ifdef HARDWARE_GRBL
-    /// @brief Delayed initialization of the conveyor
-    /// @param Wire The I2C bus.
-    void begin(TwoWire *Wire);
+  /// @brief Delayed initialization of the conveyor
+  /// @param Wire The I2C bus.
+  void begin(TwoWire *Wire);
 #else
-    /// @brief Delayed initialization of the conveyor
-    void begin();
-#endif // defined(HARDWARE_GRBL)
+  /// @brief Delayed initialization of the conveyor
+  void begin();
+#endif  // defined(HARDWARE_GRBL)
 
-    void start();
-    void stop();
-    void update();
-    ConveyorStatus getCurrentStatus();
-    ConveyorStatus getDesiredStatus();
+  void start();
+  void stop();
+  void update();
+  ConveyorStatus getCurrentStatus();
+  ConveyorStatus getDesiredStatus();
 
-private:
-    ConveyorStatus m_desiredStatus;
-    ConveyorStatus m_currentStatus;
+ private:
+  ConveyorStatus m_desiredStatus;
+  ConveyorStatus m_currentStatus;
 #ifdef HARDWARE_GRBL
-    Module_GRBL m_grbl;
-    TwoWire *m_wire;
+  Module_GRBL m_grbl;
+  TwoWire *m_wire;
 #else
-    int m_motorDelay;
-#endif // defined(HARDWARE_GRBL)
+  int m_motorDelay;
+#endif  // defined(HARDWARE_GRBL)
 };
 
-#endif // !defined(_CONVEYOR_HPP_)
+#endif  // !defined(_CONVEYOR_HPP_)
