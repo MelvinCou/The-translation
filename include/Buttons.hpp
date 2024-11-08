@@ -7,19 +7,18 @@
 #include <JC_Button.h>
 #endif
 
-class Buttons
-{
-public:
-    Buttons();
-    ~Buttons();
+class Buttons {
+ public:
+  Buttons();
+  ~Buttons();
 
-    /// @brief Delayed initialization of the buttons, allows instances of `Button` to be used as a global variable.
-    void begin();
-    void update();
+  /// @brief Delayed initialization of the buttons, allows instances of `Button` to be used as a global variable.
+  void begin();
+  void update();
 
-    Button *BtnA;
-    Button *BtnB;
-    Button *BtnC;
+  Button *BtnA;
+  Button *BtnB;
+  Button *BtnC;
 };
 
-#endif // !defined(BUTTONS_HPP)
+#endif  // !defined(BUTTONS_HPP)

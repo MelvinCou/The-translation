@@ -48,4 +48,4 @@
 
 // clang-format on
 
-#endif // !defined(LOGGER_HPP)
+#endif  // !defined(LOGGER_HPP)
