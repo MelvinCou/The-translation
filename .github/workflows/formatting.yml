@@ -1,0 +1,20 @@
+name: Code formatting
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang format
+        run: |
+          sudo apt-get install --no-install-recommends -qqy clang-format
+      - name: Check actual code formatting
+        run: |
+          clang-format -i src/*.cpp include/*.hpp
+          git diff --exit-code
