@@ -1,40 +1,42 @@
 #include "TagReader.hpp"
 
-#include "TheTranslationConfig.hpp"
+#ifdef HARDWARE_MFRC522_I2C
 
-#ifdef HARDWARE_MFRC522
-#include <MFRC522.h>
+void TagReader::begin(TwoWire *Wire) {
+  m_mfrc522 = new MFRC522_I2C(0x28, 0, Wire);
+  m_mfrc522->PCD_Init();
+  m_mfrc522->PCD_DumpVersionToSerial();
+}
 
-MFRC522 mfrc522(SS, UINT8_MAX);
-#elif defined(HARDWARE_MFRC522_I2C)
-#include <MFRC522_I2C.h>
-
-MFRC522_I2C mfrc522(0x28, 0);
+#elif defined(HARDWARE_MFRC522)
+void TagReader::begin() {
+  m_mfrc522 = new MFRC522(SS, UINT_MAX);
+  m_mfrc522->PCD_Init();
+  m_mfrc522->PCD_DumpVersionToSerial();
+}
 #endif
 
 #if defined(HARDWARE_MFRC522) || defined(HARDWARE_MFRC522_I2C)
 
-void TagReader::begin() {
-  mfrc522.PCD_Init();
-  mfrc522.PCD_DumpVersionToSerial();
+// Common code between the two variants of the MFRC522 hardware
+
+TagReader::~TagReader() { delete m_mfrc522; }
+
+bool TagReader::isNewTagPresent() {
+  bool result = m_mfrc522->PICC_IsNewCardPresent();
+  return result;
 }
 
-bool TagReader::isNewTagPresent() { return mfrc522.PICC_IsNewCardPresent(); }
-
 unsigned char TagReader::readTag(unsigned char *buffer) {
-  if (!mfrc522.PICC_ReadCardSerial()) return 0;
-  memcpy(buffer, mfrc522.uid.uidByte, mfrc522.uid.size);
-  return mfrc522.uid.size;
+  if (!m_mfrc522->PICC_ReadCardSerial()) return 0;
+  memcpy(buffer, m_mfrc522->uid.uidByte, m_mfrc522->uid.size);
+  unsigned char read = m_mfrc522->uid.size;
+  return read;
 }
 #else
 
+TagReader::~TagReader() {}
+
 void TagReader::begin() {}
-
-bool TagReader::isNewTagPresent() { return false; }
-
-unsigned char TagReader::readTag(unsigned char *buffer) {
-  (void)buffer;
-  return 0;
-}
 
 #endif  // defined(HARDWARE_MFRC522) || defined(HARDWARE_MFRC522_I2C)

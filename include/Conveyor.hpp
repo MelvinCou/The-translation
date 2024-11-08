@@ -43,7 +43,6 @@ class Conveyor {
   ConveyorStatus m_currentStatus;
 #ifdef HARDWARE_GRBL
   Module_GRBL m_grbl;
-  TwoWire *m_wire;
 #else
   int m_motorDelay;
 #endif  // defined(HARDWARE_GRBL)
