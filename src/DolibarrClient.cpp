@@ -28,25 +28,25 @@ DolibarrClientStatus DolibarrClient::configure(const char* endpoint, const char*
         LOG_ERROR("[HTTP] Invalid endpoint %s or api key %s\n", endpoint, key);
     } else {
         status = DolibarrClientStatus::READY;
-        if(tagEndpoint != nullptr) {
-            tagEndpoint.clear();
-            bool _ = tagEndpoint.concat(endpoint);
-            _ = tagEndpoint.concat(DOLIBARR_ENDPOINT_PRODUCTS);
+        if(m_tagEndpoint != nullptr) {
+            m_tagEndpoint.clear();
+            bool _ = m_tagEndpoint.concat(endpoint);
+            _ = m_tagEndpoint.concat(DOLIBARR_ENDPOINT_PRODUCTS);
         } else {
-            tagEndpoint = String(endpoint);
-            bool _ = tagEndpoint.concat(DOLIBARR_ENDPOINT_PRODUCTS);
+            m_tagEndpoint = String(endpoint);
+            bool _ = m_tagEndpoint.concat(DOLIBARR_ENDPOINT_PRODUCTS);
         }
         
-        if(stockMovementEndpoint != nullptr) {
-            stockMovementEndpoint.clear();
-            bool _ = stockMovementEndpoint.concat(endpoint);
-            _ = stockMovementEndpoint.concat(DOLIBARR_ENDPOINT_STOCKMOVEMENTS);
+        if(m_stockMovementEndpoint != nullptr) {
+            m_stockMovementEndpoint.clear();
+            bool _ = m_stockMovementEndpoint.concat(endpoint);
+            _ = m_stockMovementEndpoint.concat(DOLIBARR_ENDPOINT_STOCKMOVEMENTS);
         } else {
-            stockMovementEndpoint = String(endpoint);
-            bool _ = stockMovementEndpoint.concat(DOLIBARR_ENDPOINT_STOCKMOVEMENTS);
+            m_stockMovementEndpoint = String(endpoint);
+            bool _ = m_stockMovementEndpoint.concat(DOLIBARR_ENDPOINT_STOCKMOVEMENTS);
         }
 
-        this->key = key;
+        m_key = key;
     }
 
     return status;
@@ -56,21 +56,20 @@ DolibarrClientStatus DolibarrClient::getStatus() {
     return status;
 }
 
-void DolibarrClient::sendTag(const String barcode, int& product, int& warehouse) {
+DolibarrClientStatus DolibarrClient::sendTag(const int barcode, int& product, int& warehouse) {
     status = DolibarrClientStatus::SENDING;
 
-    String endpoint = String(tagEndpoint);
+    String endpoint = String(m_tagEndpoint);
     bool _ = endpoint.concat(barcode);
     _ = endpoint.concat(DOLIBARR_ENDPOINT_PRODUCTS_END);
 
     client.begin(endpoint);
-    client.addHeader(DOLIBARR_HEADER_APIKEY, key);
+    client.addHeader(DOLIBARR_HEADER_APIKEY, m_key);
 
     int httpCode = client.GET();
     endpoint.clear();
 
-    if (httpCode == HTTP_CODE_OK)
-    {
+    if (httpCode == HTTP_CODE_OK) {
         JsonDocument doc;
         DeserializationError error = deserializeJson(doc, client.getStream());
         client.end();
@@ -83,7 +82,7 @@ void DolibarrClient::sendTag(const String barcode, int& product, int& warehouse)
             product = doc[0]["id"].as<int>();
             warehouse = doc[0]["fk_default_warehouse"].as<int>();
 
-            LOG_DEBUG("[HTTP] barecode %s: id %u ; warehouse %u \n", barcode.c_str(), product, warehouse);
+            LOG_DEBUG("[HTTP] barecode %u: id %u ; warehouse %u \n", barcode, product, warehouse);
             status = DolibarrClientStatus::READY;
         }
 
@@ -96,9 +95,11 @@ void DolibarrClient::sendTag(const String barcode, int& product, int& warehouse)
 
         warehouse = DOLIBARR_WAREHOUSE_ERROR;
     }
+
+    return status;
 }
 
-void DolibarrClient::sendStockMovement(int warehouse, int product, int quantity) {
+DolibarrClientStatus DolibarrClient::sendStockMovement(int warehouse, int product, int quantity) {
     status = DolibarrClientStatus::SENDING;
 
     // Prepare JSON document
@@ -110,8 +111,8 @@ void DolibarrClient::sendStockMovement(int warehouse, int product, int quantity)
 
     unsigned int _ = serializeJson(doc, body);
 
-    client.begin(stockMovementEndpoint);
-    client.addHeader(DOLIBARR_HEADER_APIKEY, key);
+    client.begin(m_stockMovementEndpoint);
+    client.addHeader(DOLIBARR_HEADER_APIKEY, m_key);
 
     int httpCode = client.POST(body);
     client.end();
@@ -125,5 +126,7 @@ void DolibarrClient::sendStockMovement(int warehouse, int product, int quantity)
         status = DolibarrClientStatus::ERROR;
         
         LOG_ERROR("[HTTP] Error during sendTag request: %s\n", client.errorToString(httpCode).c_str());
-    }    
+    }
+
+    return status;
 }

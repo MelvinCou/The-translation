@@ -17,30 +17,30 @@ public:
 
     /// @brief Configure the 
     /// @param endpoint base url of the Dolibarr server
-    /// @param endpoint api key
+    /// @param key api key
     /// @return default warehouse of the product
     DolibarrClientStatus configure(const char* endpoint, const char* key);
 
     /// @brief Send product tag to the server
     /// @param barcode barcode of the product
-    /// @param product product id associeted with the barecode
-    /// @param warehouse default warehouse of the product
-    void sendTag(const String barcode, int& product, int& warehouse);
+    /// @param[out] product product id associeted with the barcode
+    /// @param[out] warehouse default warehouse of the product
+    DolibarrClientStatus sendTag(const int barcode, int& product, int& warehouse);
     
     /// @brief Create a stock movement
     /// @param warehouse
     /// @param product 
     /// @param quantity 
-    void sendStockMovement(int warehouse, int product, int quantity);
+    DolibarrClientStatus sendStockMovement(int warehouse, int product, int quantity);
 
     DolibarrClientStatus getStatus();
 private:
     HTTPClient client;
     DolibarrClientStatus status;
 
-    String tagEndpoint;
-    String stockMovementEndpoint;
-    String key;
+    String m_tagEndpoint;
+    String m_stockMovementEndpoint;
+    String m_key;
 };
 
 #endif  // _DOLIBARR_CLIENT_HPP_
