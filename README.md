@@ -7,6 +7,7 @@ Original repository : https://github.com/MelvinCou/The-translation
 Tools needed:
 
 - PlateformIO
+- ClangFormat
 
 
 ```sh
@@ -16,6 +17,7 @@ pio check --skip-packages
 pio run
 # List actions possible on a connected device
 pio run --list-targets
-# Compile for CI
-pio ci --lib=".pio/libdeps/m5stack-core2/M5Stack/src" --board=m5stack-core2 .
+
+# Format code
+clang-format -i src/*.cpp include/*.hpp
 ```
