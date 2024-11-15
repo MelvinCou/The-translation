@@ -4,7 +4,7 @@
 #include <WebConfig.h>
 
 class WebConfigurator {
-public:
+ public:
   WebConfigurator() = default;
 
   void configure();
@@ -27,7 +27,7 @@ public:
 
   int getConveyorSpeed();
 
-private:
+ private:
   WebServer m_server;
   WebConfig m_conf;
 };
