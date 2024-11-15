@@ -9,19 +9,23 @@
 #include "Logger.hpp"
 #include "Sorter.hpp"
 #include "TagReader.hpp"
+#include "MaintenanceMode.hpp"
 
 Conveyor conveyor;
 Buttons buttons;
 Sorter sorter;
 TagReader tagReader;
+MaintenanceMode maintenance;
 
-void printStatus();
 
 void readButtons(void *_nothing = nullptr);
 void runConveyor(void *_nothing = nullptr);
-void pickRandomDirection(void *nothing = nullptr);
+void startSorter(void *nothing = nullptr);
 void readAndPrintTags(void *_nothing = nullptr);
 void makeHttpRequests(void *_nothing = nullptr);
+
+void testModule(void * _nothing = nullptr);
+void showChoices(void * _nothing = nullptr);
 
 void setup() {
   Serial.begin(115200);
@@ -30,8 +34,8 @@ void setup() {
   M5.Power.begin();       // Init power
   M5.lcd.setTextSize(2);  // Set the text size to 2.
   Wire.begin(21, 22);
-  M5.Lcd.println("= Motor Test =");
-  M5.Lcd.println("A: Start B: Status C: Stop");
+  M5.Lcd.println("Maintenance Mode");
+  M5.Lcd.println("A: < B: OK C: >");
 #else
   conveyor.begin();
   Serial.flush();
@@ -52,15 +56,9 @@ void setup() {
 #endif
 
   buttons.begin();
-  printStatus();
 
   xTaskCreatePinnedToCore(&readButtons, "readButtons", 4096, nullptr, 8, nullptr, 0);
-  xTaskCreatePinnedToCore(&runConveyor, "runConveyor", 4096, nullptr, 8, nullptr, 0);
-  xTaskCreatePinnedToCore(&pickRandomDirection, "pickRandomDirection", 4096, nullptr, 8, nullptr, 0);
-#if defined(HARDWARE_MFRC522) || defined(HARDWARE_MFRC522_I2C)
-  xTaskCreatePinnedToCore(&readAndPrintTags, "readAndPrintTags", 4096, nullptr, 8, nullptr, 0);
-#endif
-  xTaskCreatePinnedToCore(&makeHttpRequests, "makeHttpRequests", 4096, nullptr, 8, nullptr, 1);
+  xTaskCreatePinnedToCore(&testModule, "testModule", 4096, nullptr, 8, nullptr, 0);
 }
 
 void loop() {
@@ -70,19 +68,59 @@ void loop() {
 void readButtons(void *_nothing) {
   for (;;) {
     buttons.update();
-    if (buttons.BtnA->wasPressed()) {
-      LOG_DEBUG("[BTN] A pressed\n");
-      conveyor.start();
-    } else if (buttons.BtnC->wasPressed()) {
-      LOG_DEBUG("[BTN] C pressed\n");
-      conveyor.stop();
+    switch (maintenance.getCurrentModule()) {
+      case ActiveModule::CONVEYOR : {
+        if (buttons.BtnA->wasPressed()) {
+          LOG_DEBUG("[BTN] A pressed\n");
+          // TODO ML start conveyor
+
+        } else if (buttons.BtnC->wasPressed()) {
+          LOG_DEBUG("[BTN] C pressed\n");
+          // TODO ML stop conveyor
+        }
+        break;
+      }
+      case ActiveModule::SORTER : {
+        if (buttons.BtnA->wasPressed()) {
+          // TODO ML decrease angle
+        } else if (buttons.BtnC->wasPressed()) {
+          LOG_DEBUG("[BTN] C pressed\n");
+          // TODO ML increase angle
+        }
+        break;
+      }
+      case ActiveModule::TAG_READER : {
+        // TODO ML nothing for now...
+        break;
+      }
+      case ActiveModule::DOLIBARR : {
+        // TODO ML send http request
+        break;
+      }
+      case ActiveModule::NONE :
+      default: {
+        if (buttons.BtnA->wasPressed()) {
+          LOG_DEBUG("[BTN] A pressed\n");
+          if (maintenance.getRange() > 0) {
+            maintenance.changeRange(-1);
+          }
+        } else if (buttons.BtnC->wasPressed()) {
+          LOG_DEBUG("[BTN] C pressed\n");
+          if (maintenance.getRange() < 3 ) {
+            maintenance.changeRange(+1);
+          }
+        }
+      }
     }
 
-    if (buttons.BtnB->wasPressed()) {
+    if (buttons.BtnB->wasPressed() && maintenance.getCurrentModule() == ActiveModule::NONE ) {
       LOG_DEBUG("[BTN] B pressed\n");
-      printStatus();
+      maintenance.changeModule(maintenance.getRange());
+      LOG_DEBUG("[MAINT.] Changing module: %s\n", ACTIVE_MODULES_STRINGS[static_cast<int>(maintenance.getCurrentModule())]);
+    } else {
+      LOG_DEBUG("[MAINT.] Exit module \n");
+      maintenance.changeModule(static_cast<int>(ActiveModule::NONE));
     }
-
     vTaskDelay(BUTTONS_READ_INTERVAL / portTICK_PERIOD_MS);
   }
 
@@ -90,104 +128,42 @@ void readButtons(void *_nothing) {
   vTaskDelete(nullptr);
 }
 
-void runConveyor(void *_nothing) {
-  for (;;) {
-    conveyor.update();
-    vTaskDelay(CONVEYOR_UPDATE_INTERVAL / portTICK_PERIOD_MS);
+void testModule(void *_nothing) {
+  switch (maintenance.getCurrentModule()) {
+    case ActiveModule::CONVEYOR : runConveyor(); break;
+    case ActiveModule::SORTER : startSorter(); break;
+    case ActiveModule::TAG_READER : readAndPrintTags(); break;
+    case ActiveModule::DOLIBARR : makeHttpRequests(); break;
+    case ActiveModule::NONE :
+    default: showChoices();
   }
-
+  vTaskDelay(1000 / portTICK_PERIOD_MS);
   // FreeRTOS tasks are not allowed to return
   vTaskDelete(nullptr);
 }
 
-void pickRandomDirection(void *_nothing) {
-  for (;;) {
-    SorterDirection direction = static_cast<SorterDirection>(random(0, 3));
-    sorter.move(direction);
+void showChoices(void *_nothing) {
+  M5.lcd.println(ACTIVE_MODULES_STRINGS[maintenance.getRange()]);
+}
 
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-  }
+void runConveyor(void *_nothing) {
+  LOG_DEBUG("[CONV.] RUN CONVEYOR \n");
+}
 
-  // FreeRTOS tasks are not allowed to return
-  vTaskDelete(nullptr);
+void startSorter(void *_nothing) {
+  LOG_DEBUG("[SORTER] RUN SORTER \n");
 }
 
 String tag = "";
 
 void readAndPrintTags(void *_nothing) {
-  for (;;) {
-    if (tagReader.isNewTagPresent()) {
-      unsigned char buffer[10];
-      unsigned char size = tagReader.readTag(buffer);
-      if (size > 0) {
-        tag = "";
-        for (unsigned char i = 0; i < size; i++) {
-          char two[3];
-          sniprintf(two, sizeof(two), "%02x", buffer[i]);
-          tag += two;
-        }
-        LOG_INFO("New Tag %s\n", tag);
-      }
-    }
-    vTaskDelay(TAG_READER_INTERVAL / portTICK_PERIOD_MS);
-  }
-
-  // FreeRTOS tasks are not allowed to return
-  vTaskDelete(nullptr);
+  LOG_DEBUG("[TAG.] RUN TAG_READER \n");
 }
 
-void printStatus() {
-  LOG_INFO("[CONV] Status => desired: %s, current: %s\n", CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor.getDesiredStatus())],
-           CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor.getCurrentStatus())]);
-}
 
 #include <HTTPClient.h>
 #include <WiFi.h>
 
 void makeHttpRequests(void *_nothing) {
-  WiFi.mode(WIFI_STA);  // connect to access point
-  WiFi.begin(HTTP_AP_SSID, HTTP_AP_PASSWORD);
-  LOG_INFO("[HTTP] Connecting to WIFI");
-
-  while (WiFi.status() != WL_CONNECTED) {
-    vTaskDelay(500 / portTICK_PERIOD_MS);
-    LOG_INFO(".");
-  }
-  LOG_INFO("\n[HTTP] Connected!\n");
-
-  for (;;) {
-    HTTPClient http;
-
-    char url[48];
-    snprintf(url, sizeof(url), "%s/%s", DOLIBARR_API_URL, tag);
-
-    LOG_INFO("[HTTP] Making HTTP request to %s...\n", url);
-    http.begin(url);
-    http.addHeader("DOLAPIKEY", DOLIBARR_API_KEY);
-
-    LOG_INFO("[HTTP] GET...");
-    // start connection and send HTTP header
-    int httpCode = http.GET();
-
-    // httpCode will be negative on error
-    if (httpCode > 0) {
-      // HTTP header has been send and Server response header has been handled
-      LOG_INFO(" code: %d\n", httpCode);
-
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-      if (httpCode == HTTP_CODE_OK) {
-        String payload = http.getString();
-        LOG_DEBUG("%s\n", payload.c_str());
-      }
-#endif  // LOG_LEVEL >= LOG_DEBUG
-    } else {
-      LOG_INFO(" failed, error: %s\n", http.errorToString(httpCode).c_str());
-    }
-
-    http.end();
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-  }
-
-  // FreeRTOS tasks are not allowed to return
-  vTaskDelete(nullptr);
+  LOG_INFO("\n[HTTP] Starting!\n");
 }
