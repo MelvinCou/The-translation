@@ -9,13 +9,11 @@
 #include "Logger.hpp"
 #include "Sorter.hpp"
 #include "TagReader.hpp"
-#include "Modes.hpp"
 
 Conveyor conveyor;
 Buttons buttons;
 Sorter sorter;
 TagReader tagReader;
-Mode mode;
 
 void printStatus();
 
@@ -55,7 +53,6 @@ void setup() {
 
   buttons.begin();
   printStatus();
-  mode.begin();
 
   xTaskCreatePinnedToCore(&readButtons, "readButtons", 4096, nullptr, 8, nullptr, 0);
   xTaskCreatePinnedToCore(&runConveyor, "runConveyor", 4096, nullptr, 8, nullptr, 0);
