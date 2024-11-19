@@ -56,9 +56,14 @@ void setup() {
 #endif
 
   buttons.begin();
+  maintenance.begin();
 
   xTaskCreatePinnedToCore(&readButtons, "readButtons", 4096, nullptr, 8, nullptr, 0);
-  xTaskCreatePinnedToCore(&testModule, "testModule", 4096, nullptr, 8, nullptr, 0);
+  // xTaskCreatePinnedToCore(&testModule, "testModule", 4096, nullptr, 8, nullptr, 0);
+  // xTaskCreatePinnedToCore(&runConveyor, "runConveyor", 4096, nullptr, 8, nullptr, 0);
+  // xTaskCreatePinnedToCore(&startSorter, "startSorter", 4096, nullptr, 8, nullptr, 0);
+  // xTaskCreatePinnedToCore(&readAndPrintTags, "readAndPrintTags", 4096, nullptr, 8, nullptr, 0);
+  // xTaskCreatePinnedToCore(&makeHttpRequests, "makeHttpRequests", 4096, nullptr, 8, nullptr, 1);
 }
 
 void loop() {
@@ -68,76 +73,87 @@ void loop() {
 void readButtons(void *_nothing) {
   for (;;) {
     buttons.update();
-    switch (maintenance.getCurrentModule()) {
-      case ActiveModule::CONVEYOR : {
-        if (buttons.BtnA->wasPressed()) {
-          LOG_DEBUG("[BTN] A pressed\n");
-          // TODO ML start conveyor
 
-        } else if (buttons.BtnC->wasPressed()) {
-          LOG_DEBUG("[BTN] C pressed\n");
-          // TODO ML stop conveyor
+    if(maintenance.getCurrentModule() == ActiveModule::NONE) {
+      if (buttons.BtnA->wasPressed()) {
+        LOG_DEBUG("[BTN] A pressed\n");
+        if (maintenance.getRange() > 0) {
+          maintenance.changeRange(-1, true);
+          M5.Lcd.clearDisplay();
+          M5.Lcd.setCursor(0,0);
+          M5.Lcd.println("Maintenance Mode");
+          M5.Lcd.println("A: < B: OK C: >");
+          M5.Lcd.println(ACTIVE_MODULES_STRINGS[maintenance.getRange()]);
         }
-        break;
-      }
-      case ActiveModule::SORTER : {
-        if (buttons.BtnA->wasPressed()) {
-          // TODO ML decrease angle
-        } else if (buttons.BtnC->wasPressed()) {
-          LOG_DEBUG("[BTN] C pressed\n");
-          // TODO ML increase angle
-        }
-        break;
-      }
-      case ActiveModule::TAG_READER : {
-        // TODO ML nothing for now...
-        break;
-      }
-      case ActiveModule::DOLIBARR : {
-        // TODO ML send http request
-        break;
-      }
-      case ActiveModule::NONE :
-      default: {
-        if (buttons.BtnA->wasPressed()) {
-          LOG_DEBUG("[BTN] A pressed\n");
-          if (maintenance.getRange() > 0) {
-            maintenance.changeRange(-1);
-          }
-        } else if (buttons.BtnC->wasPressed()) {
-          LOG_DEBUG("[BTN] C pressed\n");
-          if (maintenance.getRange() < 3 ) {
-            maintenance.changeRange(+1);
-          }
+      } else if (buttons.BtnC->wasPressed()) {
+        LOG_DEBUG("[BTN] C pressed\n");
+        if (maintenance.getRange() < 3 ) {
+          maintenance.changeRange(+1, true);
+          M5.Lcd.clearDisplay();
+          M5.Lcd.setCursor(0,0);
+          M5.Lcd.println("Maintenance Mode");
+          M5.Lcd.println("A: < B: OK C: >");
+          M5.Lcd.println(ACTIVE_MODULES_STRINGS[maintenance.getRange()]);
         }
       }
-    }
-
-    if (buttons.BtnB->wasPressed() && maintenance.getCurrentModule() == ActiveModule::NONE ) {
-      LOG_DEBUG("[BTN] B pressed\n");
-      maintenance.changeModule(maintenance.getRange());
-      LOG_DEBUG("[MAINT.] Changing module: %s\n", ACTIVE_MODULES_STRINGS[static_cast<int>(maintenance.getCurrentModule())]);
+      if (buttons.BtnB->wasPressed()) {
+        LOG_DEBUG("[BTN] B pressed\n");
+        maintenance.changeModule(maintenance.getRange());
+        M5.Lcd.clearDisplay();
+        M5.Lcd.setCursor(0,0);
+        M5.Lcd.println("Maintenance Mode for: ");
+        M5.Lcd.println(ACTIVE_MODULES_STRINGS[static_cast<int>(maintenance.getCurrentModule())]);
+        LOG_DEBUG("[MAINT.] Changing module: %s\n", ACTIVE_MODULES_STRINGS[static_cast<int>(maintenance.getCurrentModule())]);
+      }
     } else {
-      LOG_DEBUG("[MAINT.] Exit module \n");
-      maintenance.changeModule(static_cast<int>(ActiveModule::NONE));
+      switch (maintenance.getCurrentModule()) {
+        case ActiveModule::CONVEYOR : {
+          if(buttons.BtnA->wasPressed()) {
+            runConveyor();
+          } else if(buttons.BtnC->wasPressed()) {
+            M5.Lcd.println("arret moteur");
+          }
+          break;
+        }
+        case ActiveModule::SORTER : {
+          if(buttons.BtnA->wasPressed()) {
+            startSorter();
+          } else if(buttons.BtnC->wasPressed()) {
+            M5.Lcd.println("arret servomoteur");
+          }
+          break;
+        }
+        case ActiveModule::TAG_READER : {
+          if(buttons.BtnA->wasPressed()) {
+            readAndPrintTags();
+          } else if(buttons.BtnC->wasPressed()) {
+            M5.Lcd.println("arret rfid");
+          }
+          break;
+        }
+        case ActiveModule::DOLIBARR : {
+          if(buttons.BtnA->wasPressed()) {
+            makeHttpRequests();
+          } else if(buttons.BtnC->wasPressed()) {
+            M5.Lcd.println("arret wifi");
+          }
+          break;
+        }
+        default: M5.Lcd.println("NO MODULE SELECTED");
+      }
+      if (buttons.BtnB->wasPressed()) {
+        LOG_DEBUG("[MAINT.] Exit module \n");
+        maintenance.changeModule(static_cast<int>(ActiveModule::NONE));
+        maintenance.changeRange(0, false);
+        M5.Lcd.clearDisplay();
+        M5.Lcd.setCursor(0,0);
+        M5.Lcd.println("Maintenance Mode");
+        M5.Lcd.println("A: < B: OK C: >");
+      }
     }
     vTaskDelay(BUTTONS_READ_INTERVAL / portTICK_PERIOD_MS);
   }
 
-  // FreeRTOS tasks are not allowed to return
-  vTaskDelete(nullptr);
-}
-
-void testModule(void *_nothing) {
-  switch (maintenance.getCurrentModule()) {
-    case ActiveModule::CONVEYOR : runConveyor(); break;
-    case ActiveModule::SORTER : startSorter(); break;
-    case ActiveModule::TAG_READER : readAndPrintTags(); break;
-    case ActiveModule::DOLIBARR : makeHttpRequests(); break;
-    case ActiveModule::NONE :
-    default: showChoices();
-  }
-  vTaskDelay(1000 / portTICK_PERIOD_MS);
   // FreeRTOS tasks are not allowed to return
   vTaskDelete(nullptr);
 }
@@ -148,16 +164,19 @@ void showChoices(void *_nothing) {
 
 void runConveyor(void *_nothing) {
   LOG_DEBUG("[CONV.] RUN CONVEYOR \n");
+  M5.Lcd.println("RUN CONVEYOR");
 }
 
 void startSorter(void *_nothing) {
-  LOG_DEBUG("[SORTER] RUN SORTER \n");
+  LOG_DEBUG("[SORTER] START SORTER \n");
+  M5.Lcd.println("START SORTER");
 }
 
 String tag = "";
 
 void readAndPrintTags(void *_nothing) {
   LOG_DEBUG("[TAG.] RUN TAG_READER \n");
+  M5.Lcd.println("SCAN TAG");
 }
 
 
@@ -166,4 +185,5 @@ void readAndPrintTags(void *_nothing) {
 
 void makeHttpRequests(void *_nothing) {
   LOG_INFO("\n[HTTP] Starting!\n");
+  M5.Lcd.println("SEND REQUEST");
 }

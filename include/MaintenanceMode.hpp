@@ -26,7 +26,7 @@ class MaintenanceMode {
    void begin();
    void stop();
    void changeModule(int range);
-   void changeRange(int increment);
+   void changeRange(int number, bool isIncrement);
    ActiveModule getCurrentModule();
    int getRange();
 

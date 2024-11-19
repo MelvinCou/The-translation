@@ -13,7 +13,7 @@ void MaintenanceMode::stop()
 
 void MaintenanceMode::changeModule(int range)
 {
-  if(range >= 0 && range <= 3) {
+  if(range >= 0 && range <= 4) {
       switch (range) {
           case 0 : m_currentActiveModule = ActiveModule::CONVEYOR; break;
           case 1 : m_currentActiveModule = ActiveModule::SORTER; break;
@@ -24,9 +24,14 @@ void MaintenanceMode::changeModule(int range)
   }
 }
 
-void MaintenanceMode::changeRange(int increment)
+void MaintenanceMode::changeRange(int number, bool isIncrement)
 {
-  m_range += increment;
+    if(isIncrement) {
+        m_range += number;
+    } else {
+        m_range = number;
+    }
+
 }
 
 ActiveModule MaintenanceMode::getCurrentModule(){ return m_currentActiveModule; }
