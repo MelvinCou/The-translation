@@ -1,5 +1,5 @@
-#ifndef _DOLIBARR_CLIENT_HPP_
-#define _DOLIBARR_CLIENT_HPP_
+#ifndef DOLIBARR_CLIENT_HPP_
+#define DOLIBARR_CLIENT_HPP_
 
 #include <HTTPClient.h>
 
@@ -28,7 +28,7 @@ class DolibarrClient {
   /// @param quantity
   DolibarrClientStatus sendStockMovement(int warehouse, int product, int quantity);
 
-  DolibarrClientStatus getStatus();
+  DolibarrClientStatus getStatus() const;
 
  private:
   HTTPClient client;
@@ -39,4 +39,4 @@ class DolibarrClient {
   String m_key;
 };
 
-#endif  // _DOLIBARR_CLIENT_HPP_
+#endif  // DOLIBARR_CLIENT_HPP_

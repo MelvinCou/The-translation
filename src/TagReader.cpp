@@ -2,8 +2,8 @@
 
 #ifdef HARDWARE_MFRC522_I2C
 
-void TagReader::begin(TwoWire *Wire) {
-  m_mfrc522 = new MFRC522_I2C(0x28, 0, Wire);
+void TagReader::begin(TwoWire *wire) {
+  m_mfrc522 = new MFRC522_I2C(0x28, 0, wire);
   m_mfrc522->PCD_Init();
   m_mfrc522->PCD_DumpVersionToSerial();
 }

@@ -1,4 +1,3 @@
-
 #include "Buttons.hpp"
 
 #include "TheTranslationConfig.hpp"

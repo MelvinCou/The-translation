@@ -4,6 +4,9 @@
 #include <M5Stack.h>
 #endif  // defined(ENV_M5STACK)
 
+#include <HTTPClient.h>
+#include <WiFi.h>
+
 #include "Buttons.hpp"
 #include "Conveyor.hpp"
 #include "Logger.hpp"
@@ -67,7 +70,9 @@ void loop() {
   // nothing to do!
 }
 
-void readButtons(void *_nothing) {
+using NoContext = void *;
+
+[[noreturn]] void readButtons(NoContext) {
   for (;;) {
     buttons.update();
     if (buttons.BtnA->wasPressed()) {
@@ -90,7 +95,7 @@ void readButtons(void *_nothing) {
   vTaskDelete(nullptr);
 }
 
-void runConveyor(void *_nothing) {
+[[noreturn]] void runConveyor(NoContext) {
   for (;;) {
     conveyor.update();
     vTaskDelay(CONVEYOR_UPDATE_INTERVAL / portTICK_PERIOD_MS);
@@ -100,9 +105,9 @@ void runConveyor(void *_nothing) {
   vTaskDelete(nullptr);
 }
 
-void pickRandomDirection(void *_nothing) {
+[[noreturn]] void pickRandomDirection(NoContext) {
   for (;;) {
-    SorterDirection direction = static_cast<SorterDirection>(random(0, 3));
+    auto direction = static_cast<SorterDirection>(random(0, 3));
     sorter.move(direction);
 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -114,7 +119,7 @@ void pickRandomDirection(void *_nothing) {
 
 String tag = "";
 
-void readAndPrintTags(void *_nothing) {
+[[noreturn]] void readAndPrintTags(NoContext) {
   for (;;) {
     if (tagReader.isNewTagPresent()) {
       unsigned char buffer[10];
@@ -141,15 +146,12 @@ void printStatus() {
            CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor.getCurrentStatus())]);
 }
 
-#include <HTTPClient.h>
-#include <WiFi.h>
-
-void makeHttpRequests(void *_nothing) {
-  WiFi.mode(WIFI_STA);  // connect to access point
+[[noreturn]] void makeHttpRequests(NoContext) {
+  WiFiClass::mode(WIFI_STA);  // connect to access point
   WiFi.begin(HTTP_AP_SSID, HTTP_AP_PASSWORD);
   LOG_INFO("[HTTP] Connecting to WIFI");
 
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFiClass::status() != WL_CONNECTED) {
     vTaskDelay(500 / portTICK_PERIOD_MS);
     LOG_INFO(".");
   }
@@ -159,7 +161,7 @@ void makeHttpRequests(void *_nothing) {
     HTTPClient http;
 
     char url[48];
-    snprintf(url, sizeof(url), "%s/%s", DOLIBARR_API_URL, tag);
+    snprintf(url, sizeof(url), "%s/%s", DOLIBARR_API_URL, tag.c_str());
 
     LOG_INFO("[HTTP] Making HTTP request to %s...\n", url);
     http.begin(url);
