@@ -53,7 +53,7 @@ DolibarrClientStatus DolibarrClient::configure(const char* endpoint, const char*
   return status;
 }
 
-DolibarrClientStatus DolibarrClient::getStatus() { return status; }
+DolibarrClientStatus DolibarrClient::getStatus() const { return status; }
 
 DolibarrClientStatus DolibarrClient::sendTag(const int barcode, int& product, int& warehouse) {
   status = DolibarrClientStatus::SENDING;

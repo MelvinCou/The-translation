@@ -11,8 +11,8 @@
 
 Conveyor::Conveyor() : m_grbl(CONVEYOR_GRBL_I2C_ADDR) {}
 
-void Conveyor::begin(TwoWire *Wire) {
-  m_grbl.Init(Wire);
+void Conveyor::begin(TwoWire *wire) {
+  m_grbl.Init(wire);
   m_desiredStatus = ConveyorStatus::STOPPED;
   m_currentStatus = ConveyorStatus::UNDEFINED;
 }
@@ -33,7 +33,7 @@ static ConveyorStatus readStatus(Module_GRBL *grbl) {
 }
 
 void Conveyor::update() {
-  ConveyorStatus oldStatus = m_currentStatus;
+  [[maybe_unused]] ConveyorStatus oldStatus = m_currentStatus;
   m_currentStatus = readStatus(&m_grbl);
 
   if (m_currentStatus == ConveyorStatus::UNDEFINED) {
@@ -100,6 +100,6 @@ void Conveyor::stop() {
   m_desiredStatus = ConveyorStatus::STOPPED;
 }
 
-ConveyorStatus Conveyor::getDesiredStatus() { return m_desiredStatus; }
+ConveyorStatus Conveyor::getDesiredStatus() const { return m_desiredStatus; }
 
-ConveyorStatus Conveyor::getCurrentStatus() { return m_currentStatus; }
+ConveyorStatus Conveyor::getCurrentStatus() const { return m_currentStatus; }

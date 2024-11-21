@@ -25,8 +25,8 @@ class Conveyor {
 
 #ifdef HARDWARE_GRBL
   /// @brief Delayed initialization of the conveyor
-  /// @param Wire The I2C bus.
-  void begin(TwoWire *Wire);
+  /// @param wire The I2C bus.
+  void begin(TwoWire *wire);
 #else
   /// @brief Delayed initialization of the conveyor
   void begin();
@@ -35,8 +35,8 @@ class Conveyor {
   void start();
   void stop();
   void update();
-  ConveyorStatus getCurrentStatus();
-  ConveyorStatus getDesiredStatus();
+  ConveyorStatus getCurrentStatus() const;
+  ConveyorStatus getDesiredStatus() const;
 
  private:
   ConveyorStatus m_desiredStatus;

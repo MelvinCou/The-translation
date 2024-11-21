@@ -14,8 +14,8 @@ class TagReader {
 
 #ifdef HARDWARE_MFRC522_I2C
   /// @brief Delayed initialization of the tag reader
-  /// @param Wire The I2C bus.
-  void begin(TwoWire *Wire);
+  /// @param wire The I2C bus.
+  void begin(TwoWire *wire);
 #else
   /// @brief Delayed initialization of the tag reader
   void begin();
