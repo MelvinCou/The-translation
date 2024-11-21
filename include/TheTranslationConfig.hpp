@@ -39,8 +39,8 @@
 #pragma endregion "tag reader configuration"
 
 #pragma region "http configuration"
-#define HTTP_AP_SSID "your_wifi_ssid_here"
-#define HTTP_AP_PASSWORD "your_wifi_password_here"
+#define HTTP_AP_SSID "AndroidAP"
+#define HTTP_AP_PASSWORD "kfuj0545"
 #define HTTP_TARGET_URL "http://192.168.240.78:8080"
 #pragma endregion "http configuration"
 
