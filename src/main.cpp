@@ -113,14 +113,17 @@ void runConveyor(void *_nothing) {
   for(;;) {
     if(maintenance.getCurrentModule() == ActiveModule::CONVEYOR) {
       buttons.update();
+      // conveyor.update();
       if(buttons.BtnA->wasPressed()) {
         LOG_DEBUG("[CONV.] RUN CONVEYOR \n");
         M5.Lcd.println("RUN CONVEYOR");
+        // conveyor.start();
       } else if(buttons.BtnC->wasPressed()) {
         M5.Lcd.println("STOP MOTOR");
+        // conveyor.stop();
       }
 
-      if(buttons.BtnB->pressedFor(5000)) {
+      if(buttons.BtnB->pressedFor(3000)) {
         exitModule();
       }
     }
@@ -130,17 +133,26 @@ void runConveyor(void *_nothing) {
 }
 
 void startSorter(void *_nothing) {
+  int angle = 50;
   for(;;) {
     if(maintenance.getCurrentModule() == ActiveModule::SORTER) {
       buttons.update();
       if(buttons.BtnA->wasPressed()) {
         LOG_DEBUG("[SORT.] START SORTER \n");
-        M5.Lcd.println("START SORTER"); // TODO ML select left/right/middle
+        M5.Lcd.println("INCREASE ANGLE"); // TODO ML select left/right/middle
+        angle += 1;
+        M5.Lcd.println(angle);
+
       } else if(buttons.BtnC->wasPressed()) {
-        M5.Lcd.println("STOP SORTER");
+        M5.Lcd.println("DIMINISH ANGLE");
+        angle -= 1;
+        M5.Lcd.println(angle);
+      } else if(buttons.BtnB->wasPressed()) {
+        // sorter.move(angle);
+        M5.Lcd.println("MOVE");
       }
 
-      if(buttons.BtnB->pressedFor(5000)) {
+      if(buttons.BtnB->pressedFor(3000)) {
         exitModule();
       }
     }
@@ -161,8 +173,22 @@ void readAndPrintTags(void *_nothing) {
       } else if(buttons.BtnC->wasPressed()) {
         M5.Lcd.println("STOP RFID");
       }
-
-      if(buttons.BtnB->pressedFor(5000)) {
+      // if (tagReader.isNewTagPresent()) {
+      //   unsigned char buffer[10];
+      //   unsigned char size = tagReader.readTag(buffer);
+      //   if (size > 0) {
+      //     tag = "";
+      //     for (unsigned char i = 0; i < size; i++) {
+      //       char two[3];
+      //       sniprintf(two, sizeof(two), "%02x", buffer[i]);
+      //       tag += two;
+      //     }
+      //     LOG_INFO("New Tag %s\n", tag);
+      //     M5.Lcd.println("TAG VALUE :");
+      //     M5.Lcd.println(tag);
+      //   }
+      // }
+      if(buttons.BtnB->pressedFor(3000)) {
         exitModule();
       }
     }
@@ -181,12 +207,14 @@ void makeHttpRequests(void *_nothing) {
       buttons.update();
       if(buttons.BtnA->wasPressed()) {
         LOG_INFO("\n[HTTP] Starting!\n");
-        M5.Lcd.println("SEND REQUEST");
+        M5.Lcd.println("SEND LOGIN REQUEST");
+        // TODO ML print the result
       } else if(buttons.BtnC->wasPressed()) {
-        M5.Lcd.println("STOP WIFI");
+        M5.Lcd.println("SEND PRODUCT REQUEST");
+        // TODO ML print the result
       }
 
-      if(buttons.BtnB->pressedFor(5000)) {
+      if(buttons.BtnB->pressedFor(3000)) {
         exitModule();
       }
     }
