@@ -47,11 +47,11 @@ void setup() {
   conveyor.begin();
 #endif
 
-#ifdef HARDWARE_MFRC522_I2C
-  tagReader.begin(&Wire);
-#else
-  tagReader.begin();
-#endif
+// #ifdef HARDWARE_MFRC522_I2C
+//   tagReader.begin(&Wire);
+// #else
+//   tagReader.begin();
+// #endif
 
   buttons.begin();
   maintenance.begin();
@@ -59,7 +59,9 @@ void setup() {
   xTaskCreatePinnedToCore(&showChoices, "showChoices", 4096, nullptr, 8, nullptr, 0);
   xTaskCreatePinnedToCore(&runConveyor, "runConveyor", 4096, nullptr, 8, nullptr, 0);
   xTaskCreatePinnedToCore(&startSorter, "startSorter", 4096, nullptr, 8, nullptr, 0);
-  xTaskCreatePinnedToCore(&readAndPrintTags, "readAndPrintTags", 4096, nullptr, 8, nullptr, 0);
+#if defined(HARDWARE_MFRC522) || defined(HARDWARE_MFRC522_I2C)
+  // xTaskCreatePinnedToCore(&readAndPrintTags, "readAndPrintTags", 4096, nullptr, 8, nullptr, 0);
+#endif
   xTaskCreatePinnedToCore(&makeHttpRequests, "makeHttpRequests", 4096, nullptr, 8, nullptr, 1);
 }
 
@@ -113,14 +115,14 @@ void runConveyor(void *_nothing) {
   for(;;) {
     if(maintenance.getCurrentModule() == ActiveModule::CONVEYOR) {
       buttons.update();
-      // conveyor.update();
+      conveyor.update();
       if(buttons.BtnA->wasPressed()) {
         LOG_DEBUG("[CONV.] RUN CONVEYOR \n");
         M5.Lcd.println("RUN CONVEYOR");
-        // conveyor.start();
+        conveyor.start();
       } else if(buttons.BtnC->wasPressed()) {
         M5.Lcd.println("STOP MOTOR");
-        // conveyor.stop();
+        conveyor.stop();
       }
 
       if(buttons.BtnB->pressedFor(3000)) {
@@ -134,22 +136,32 @@ void runConveyor(void *_nothing) {
 
 void startSorter(void *_nothing) {
   int angle = 50;
+  int realPosition = 0;
   for(;;) {
     if(maintenance.getCurrentModule() == ActiveModule::SORTER) {
       buttons.update();
-      if(buttons.BtnA->wasPressed()) {
-        LOG_DEBUG("[SORT.] START SORTER \n");
-        M5.Lcd.println("INCREASE ANGLE"); // TODO ML select left/right/middle
+      if(buttons.BtnC->wasPressed()) {
+        LOG_DEBUG("[SORT.] INCREASE ANGLE \n");
         angle += 1;
-        M5.Lcd.println(angle);
+        M5.Lcd.clearDisplay();
+        M5.Lcd.setCursor(0,0);
+        M5.Lcd.println("ANGLE : ");
+        M5.Lcd.print(angle);
 
-      } else if(buttons.BtnC->wasPressed()) {
-        M5.Lcd.println("DIMINISH ANGLE");
+      } else if(buttons.BtnA->wasPressed()) {
+        LOG_DEBUG("[SORT.] DECREASE ANGLE \n");
         angle -= 1;
-        M5.Lcd.println(angle);
+        M5.Lcd.clearDisplay();
+        M5.Lcd.setCursor(0,0);
+        M5.Lcd.println("ANGLE : ");
+        M5.Lcd.print(angle);
       } else if(buttons.BtnB->wasPressed()) {
-        // sorter.move(angle);
         M5.Lcd.println("MOVE");
+        while(realPosition < angle) {
+          sorter.moveWithSpecificAngle(realPosition);
+          realPosition += 1;
+          vTaskDelay(30);
+        }
       }
 
       if(buttons.BtnB->pressedFor(3000)) {

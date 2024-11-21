@@ -15,6 +15,7 @@ class Sorter {
 
   void begin();
   void move(SorterDirection direction);
+    void moveWithSpecificAngle(int angle);
 };
 
 #endif  // !defined(SORTER_HPP)
