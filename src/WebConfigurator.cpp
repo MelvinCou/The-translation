@@ -63,6 +63,18 @@ void WebConfigurator::configure() {
   }
 }
 
+void WebConfigurator::reset() {
+  // No way to clear everything at once: we delete one by one
+  m_conf.setValue(AP_SSID, "");
+  m_conf.setValue(AP_PASSWORD, "");
+  m_conf.setValue(API_URL, "");
+  m_conf.setValue(API_KEY, "");
+  m_conf.setValue(API_WAREHOUSE, "");
+  m_conf.setValue(CONVEYOR_SPEED, "");
+
+  m_conf.deleteConfig();
+}
+
 void WebConfigurator::serverListen() {
   m_server.on("/", [this] { m_conf.handleFormRequest(&m_server); });
   m_server.begin(80);
@@ -80,6 +92,6 @@ const char* WebConfigurator::getApiUrl() { return m_conf.getValue(API_URL); }
 
 const char* WebConfigurator::getApiKey() { return m_conf.getValue(API_KEY); }
 
-int WebConfigurator::getApiWarhouseError() { return m_conf.getInt(API_WAREHOUSE); }
+int WebConfigurator::getApiWarehouseError() { return m_conf.getInt(API_WAREHOUSE); }
 
 int WebConfigurator::getConveyorSpeed() { return m_conf.getInt(CONVEYOR_SPEED); }

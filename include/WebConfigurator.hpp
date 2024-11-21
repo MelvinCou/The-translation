@@ -9,6 +9,8 @@ class WebConfigurator {
 
   void configure();
 
+  void reset();
+
   /// @brief Listen on port 80
   void serverListen();
   /// @brief Close the web server
@@ -23,7 +25,7 @@ class WebConfigurator {
 
   const char* getApiUrl();
   const char* getApiKey();
-  int getApiWarhouseError();
+  int getApiWarehouseError();
 
   int getConveyorSpeed();
 
