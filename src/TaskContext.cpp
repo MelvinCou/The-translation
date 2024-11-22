@@ -64,6 +64,7 @@ void TaskContext::subTaskNotifyFinish() const { xTaskNotify(m_modeSwitcherTaskHa
 void TaskContext::subTasksRequestCancellation() const {
   for (uint32_t i = 0; i < MAX_SUB_TASKS; i++) {
     if (m_subTaskHandles[i] != nullptr) {
+      LOG_DEBUG("[TASK] Requesting cancellation of sub-task H=%p\n", m_subTaskHandles[i]);
       xTaskNotify(m_subTaskHandles[i], REQUEST_SUB_TASK_CANCELLATION_BIT, eSetBits);
     }
   }

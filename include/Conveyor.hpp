@@ -2,13 +2,14 @@
 #define _CONVEYOR_HPP_
 
 #ifdef HARDWARE_GRBL
-#include "Module_GRBL_13.2.h"
+#include "NonBlockingGRBL.hpp"
 #endif  // defined(HARDWARE_GRBL)
 
 enum class ConveyorStatus {
   UNDEFINED,
   STOPPED,
   RUNNING,
+  CANCELLED,
 };
 
 static const char *CONVEYOR_STATUS_STRINGS[] = {

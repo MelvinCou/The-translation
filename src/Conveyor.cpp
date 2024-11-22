@@ -18,7 +18,12 @@ void Conveyor::begin(TwoWire *wire) {
 }
 
 static ConveyorStatus readStatus(Module_GRBL *grbl) {
-  String grblStatus = grbl->readStatus();
+  String grblStatus;
+  GRBLCancellable result = grbl->readStatus(&grblStatus);
+
+  if (result == GRBLCancellable::CANCELLED) {
+    return ConveyorStatus::CANCELLED;
+  }
 
   if (grblStatus[0] == 'I') {
     // IDLE state
@@ -35,6 +40,12 @@ static ConveyorStatus readStatus(Module_GRBL *grbl) {
 void Conveyor::update() {
   [[maybe_unused]] ConveyorStatus oldStatus = m_currentStatus;
   m_currentStatus = readStatus(&m_grbl);
+
+  if (m_currentStatus == ConveyorStatus::CANCELLED) {
+    LOG_DEBUG("[CONV] task was cancelled, aborting update.\n");
+    m_grbl.unLock();
+    return;
+  }
 
   if (m_currentStatus == ConveyorStatus::UNDEFINED) {
     m_grbl.unLock();

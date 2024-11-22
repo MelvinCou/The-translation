@@ -43,6 +43,7 @@ void spawnSubTaskInternal(SimpleSubTask subTask, TaskContext *ctx, char const *t
 bool interruptibleTaskPause(TickType_t delay);
 
 /// @brief Same as interruptibleTaskPause but the delay is in milliseconds.
+/// @note This function is NOT reentrant, nested loops using this function will not work as expected.
 /// @param delayMs The delay in milliseconds.
 /// @return true if the task is allowed to continue, false if cancellation is requested.
 inline bool interruptibleTaskPauseMs(uint32_t delayMs) { return interruptibleTaskPause(delayMs / portTICK_PERIOD_MS); }
