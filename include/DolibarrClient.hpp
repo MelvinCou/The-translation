@@ -13,8 +13,9 @@ class DolibarrClient {
   /// @brief Configure the
   /// @param endpoint base url of the Dolibarr server
   /// @param key api key
+  /// @param warehouse error warehouse
   /// @return default warehouse of the product
-  DolibarrClientStatus configure(const char* endpoint, const char* key);
+  DolibarrClientStatus configure(const char* endpoint, const char* key, int warehouse);
 
   /// @brief Send product tag to the server
   /// @param barcode barcode of the product
@@ -37,6 +38,7 @@ class DolibarrClient {
   String m_tagEndpoint;
   String m_stockMovementEndpoint;
   String m_key;
+  int m_errorWarehouse;
 };
 
 #endif  // DOLIBARR_CLIENT_HPP_

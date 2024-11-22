@@ -5,8 +5,10 @@
 #include "Logger.hpp"
 #include "TheTranslationConfig.hpp"
 
-DolibarrClientStatus DolibarrClient::configure(const char* endpoint, const char* key) {
+DolibarrClientStatus DolibarrClient::configure(const char* endpoint, const char* key, int warehouse) {
   status = DolibarrClientStatus::CONFIGURING;
+
+  m_errorWarehouse = warehouse;
 
   // We need to use http 1.0, otherwise connection is unstable (connection lost error)
   client.useHTTP10();
@@ -76,7 +78,7 @@ DolibarrClientStatus DolibarrClient::sendTag(const int barcode, int& product, in
     if (error) {
       status = DolibarrClientStatus::ERROR;
       LOG_ERROR("[HTTP] Error deserializing sendTag payload: %s\n", error.c_str());
-      warehouse = DOLIBARR_WAREHOUSE_ERROR;
+      warehouse = m_errorWarehouse;
     } else {
       product = doc[0]["id"].as<int>();
       warehouse = doc[0]["fk_default_warehouse"].as<int>();
@@ -92,7 +94,7 @@ DolibarrClientStatus DolibarrClient::sendTag(const int barcode, int& product, in
 
     LOG_ERROR("[HTTP] Error during sendTag request: %s\n", client.errorToString(httpCode).c_str());
 
-    warehouse = DOLIBARR_WAREHOUSE_ERROR;
+    warehouse = m_errorWarehouse;
   }
 
   return status;

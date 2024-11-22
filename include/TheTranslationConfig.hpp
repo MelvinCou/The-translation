@@ -38,17 +38,12 @@
 #define TAG_READER_INTERVAL 100  //< Read interval in milliseconds
 #pragma endregion "tag reader configuration"
 
-#pragma region "http configuration"
-#define HTTP_AP_SSID "your_wifi_ssid_here"
-#define HTTP_AP_PASSWORD "your_wifi_password_here"
-#define HTTP_TARGET_URL "http://192.168.240.78:8080"
-#pragma endregion "http configuration"
+#pragma region "soft access point configuration"
+#define SOFTAP_SSID "The Translation"
+#define SOFTAP_PASSWORD "Rotation Is Best!"
+#pragma endregion "soft access point configuration"
 
 #pragma region "dolibarr configuration"
-#define DOLIBARR_API_KEY ""
-#define DOLIBARR_API_URL "http://...:8080/api/index.php"
-#define DOLIBARR_WAREHOUSE_ERROR 3
-
 #define DOLIBARR_HEADER_APIKEY "DOLAPIKEY"
 #define DOLIBARR_ENDPOINT_STATUS "/status"
 #define DOLIBARR_ENDPOINT_PRODUCTS "/products?limit=1&mode=1&sqlfilters=(t.barcode%3A%3D%3A'"

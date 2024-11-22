@@ -9,14 +9,18 @@
 
 #include "Buttons.hpp"
 #include "Conveyor.hpp"
+#include "DolibarrClient.hpp"
 #include "Logger.hpp"
 #include "Sorter.hpp"
 #include "TagReader.hpp"
+#include "WebConfigurator.hpp"
 
 Conveyor conveyor;
 Buttons buttons;
+DolibarrClient dolibarrClient;
 Sorter sorter;
 TagReader tagReader;
+WebConfigurator webConfigurator;
 
 void printStatus();
 
@@ -25,6 +29,7 @@ void runConveyor(void *_nothing = nullptr);
 void pickRandomDirection(void *nothing = nullptr);
 void readAndPrintTags(void *_nothing = nullptr);
 void makeHttpRequests(void *_nothing = nullptr);
+void exposeWebConfigurator(void *_nothing = nullptr);
 
 void setup() {
   Serial.begin(115200);
@@ -57,13 +62,18 @@ void setup() {
   buttons.begin();
   printStatus();
 
+  // webConfigurator.reset();
+  webConfigurator.configure();
+
   xTaskCreatePinnedToCore(&readButtons, "readButtons", 4096, nullptr, 8, nullptr, 0);
   xTaskCreatePinnedToCore(&runConveyor, "runConveyor", 4096, nullptr, 8, nullptr, 0);
   xTaskCreatePinnedToCore(&pickRandomDirection, "pickRandomDirection", 4096, nullptr, 8, nullptr, 0);
 #if defined(HARDWARE_MFRC522) || defined(HARDWARE_MFRC522_I2C)
   xTaskCreatePinnedToCore(&readAndPrintTags, "readAndPrintTags", 4096, nullptr, 8, nullptr, 0);
 #endif
-  xTaskCreatePinnedToCore(&makeHttpRequests, "makeHttpRequests", 4096, nullptr, 8, nullptr, 1);
+  // For the time, we cannot do http request and connect to the web configurator
+  // xTaskCreatePinnedToCore(&makeHttpRequests, "makeHttpRequests", 4096, nullptr, 8, nullptr, 1);
+  xTaskCreatePinnedToCore(&exposeWebConfigurator, "exposeWebConfigurator", 4096, nullptr, 8, nullptr, 1);
 }
 
 void loop() {
@@ -148,7 +158,7 @@ void printStatus() {
 
 [[noreturn]] void makeHttpRequests(NoContext) {
   WiFiClass::mode(WIFI_STA);  // connect to access point
-  WiFi.begin(HTTP_AP_SSID, HTTP_AP_PASSWORD);
+  WiFi.begin(webConfigurator.getApSsid(), webConfigurator.getApPassword());
   LOG_INFO("[HTTP] Connecting to WIFI");
 
   while (WiFiClass::status() != WL_CONNECTED) {
@@ -157,38 +167,39 @@ void printStatus() {
   }
   LOG_INFO("\n[HTTP] Connected!\n");
 
+  int product = 0, warehouse = 0;
+  DolibarrClientStatus dolibarrStatus =
+      dolibarrClient.configure(webConfigurator.getApiUrl(), webConfigurator.getApiKey(), webConfigurator.getApiWarehouseError());
+
+  LOG_DEBUG("[HTTP] Dolibarr status : %u\n", dolibarrStatus);
+
   for (;;) {
-    HTTPClient http;
+    dolibarrClient.sendTag(2101204191, product, warehouse);
 
-    char url[48];
-    snprintf(url, sizeof(url), "%s/%s", DOLIBARR_API_URL, tag.c_str());
+    dolibarrClient.sendStockMovement(warehouse, product, 1);
 
-    LOG_INFO("[HTTP] Making HTTP request to %s...\n", url);
-    http.begin(url);
-    http.addHeader("DOLAPIKEY", DOLIBARR_API_KEY);
-
-    LOG_INFO("[HTTP] GET...");
-    // start connection and send HTTP header
-    int httpCode = http.GET();
-
-    // httpCode will be negative on error
-    if (httpCode > 0) {
-      // HTTP header has been send and Server response header has been handled
-      LOG_INFO(" code: %d\n", httpCode);
-
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-      if (httpCode == HTTP_CODE_OK) {
-        String payload = http.getString();
-        LOG_DEBUG("%s\n", payload.c_str());
-      }
-#endif  // LOG_LEVEL >= LOG_DEBUG
-    } else {
-      LOG_INFO(" failed, error: %s\n", http.errorToString(httpCode).c_str());
-    }
-
-    http.end();
     vTaskDelay(5000 / portTICK_PERIOD_MS);
   }
+
+  // FreeRTOS tasks are not allowed to return
+  vTaskDelete(nullptr);
+}
+
+[[noreturn]] void exposeWebConfigurator(NoContext) {
+  WiFiClass::mode(WIFI_AP);  // expose access point
+  WiFi.softAP(SOFTAP_SSID, SOFTAP_PASSWORD);
+
+  LOG_INFO(" Server IP: %s\n", WiFi.softAPIP().toString().c_str());
+
+  webConfigurator.serverListen();
+
+  // TODO: check for configuration mode
+  for (;;) {
+    webConfigurator.handleClient();
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+  }
+
+  webConfigurator.serverClose();
 
   // FreeRTOS tasks are not allowed to return
   vTaskDelete(nullptr);
