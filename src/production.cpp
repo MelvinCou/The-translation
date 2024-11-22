@@ -43,10 +43,8 @@ static void runConveyor(TaskContext *ctx) {
   Conveyor &conveyor = ctx->getHardware()->conveyor;
 
   do {
-    LOG_TRACE("[CONV] runConveyor START\n");
     conveyor.update();
-    LOG_TRACE("[CONV] runConveyor END\n");
-  } while (interruptibleTaskPauseMs(CONVEYOR_UPDATE_INTERVAL));
+  } while (conveyor.getCurrentStatus() != ConveyorStatus::CANCELLED && interruptibleTaskPauseMs(CONVEYOR_UPDATE_INTERVAL));
 
   LOG_DEBUG("[CONV] Stopping conveyor\n");
 
@@ -159,7 +157,7 @@ void startProductionMode(TaskContext *ctx) {
 #ifdef ENV_M5STACK
   M5.Lcd.clearDisplay();
   M5.Lcd.setCursor(0, 0);
-  M5.Lcd.println("= Motor Test =");
+  M5.Lcd.println("= Production Mode =");
   M5.Lcd.println("A: Start B: Mode C: Stop");
 #endif  // defined(ENV_M5STACK)
 }

@@ -11,7 +11,7 @@
 #define LOG_LEVEL_TRACE (5)
 
 #ifndef LOG_LEVEL
-#define LOG_LEVEL LOG_LEVEL_INFO
+#define LOG_LEVEL LOG_LEVEL_DEBUG
 #endif // !defined(LOG_LEVEL)
 
 #define LOG_PRINTF(format, ...) Serial.printf(format, ##__VA_ARGS__)

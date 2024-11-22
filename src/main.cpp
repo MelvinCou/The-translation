@@ -30,7 +30,8 @@ void startConfigurationMode(TaskContext *ctx);
 
     // Wait for all sub-tasks to gracefully finish
     while (ctx->subTaskReadCountAtomic() > 0) {
-      ulTaskNotifyTake(pdFALSE, portMAX_DELAY);
+      ulTaskNotifyTake(pdFALSE, 1000 / portTICK_PERIOD_MS);
+      // try again in 1 second, if somehow the sub-tasks are still running
     }
 
     ctx->setOperationMode(newMode);
