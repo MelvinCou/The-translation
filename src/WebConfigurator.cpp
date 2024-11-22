@@ -64,15 +64,9 @@ void WebConfigurator::configure() {
 }
 
 void WebConfigurator::reset() {
-  // No way to clear everything at once: we delete one by one
-  m_conf.setValue(AP_SSID, "");
-  m_conf.setValue(AP_PASSWORD, "");
-  m_conf.setValue(API_URL, "");
-  m_conf.setValue(API_KEY, "");
-  m_conf.setValue(API_WAREHOUSE, "");
-  m_conf.setValue(CONVEYOR_SPEED, "");
-
-  m_conf.deleteConfig();
+  // set a json empty argument to clear whole data
+  m_conf.setDescription("[]");
+  m_conf.writeConfig();
 }
 
 void WebConfigurator::serverListen() {
