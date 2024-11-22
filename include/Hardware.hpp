@@ -3,10 +3,10 @@
 
 #include "Buttons.hpp"
 #include "Conveyor.hpp"
+#include "DolibarrClient.hpp"
 #include "Sorter.hpp"
 #include "TagReader.hpp"
 #include "WebConfigurator.hpp"
-#include "DolibarrClient.hpp"
 
 /// @brief The one-stop shop for initializing and accessing all hardware components.
 class Hardware {
