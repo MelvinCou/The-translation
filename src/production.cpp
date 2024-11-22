@@ -8,14 +8,17 @@
 #include <WiFi.h>
 #include <freertos/task.h>
 
+#include <OperationMode.hpp>
+#include <TaskContext.hpp>
+
 #include "Buttons.hpp"
 #include "Hardware.hpp"
 #include "Logger.hpp"
 #include "taskUtil.hpp"
 
-[[noreturn]] static void readButtons(Hardware *hardware) {
-  Buttons &buttons = hardware->buttons;
-  Conveyor &conveyor = hardware->conveyor;
+static void readButtons(TaskContext *ctx) {
+  Buttons &buttons = ctx->getHardware()->buttons;
+  Conveyor &conveyor = ctx->getHardware()->conveyor;
 
   do {
     buttons.update();
@@ -29,33 +32,30 @@
 
     if (buttons.BtnB->wasPressed()) {
       LOG_DEBUG("[BTN] B pressed\n");
-      LOG_INFO("[CONV] Status => desired: %s, current: %s\n", CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor.getDesiredStatus())],
-               CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor.getCurrentStatus())]);
+      ctx->requestOperationModeChange(OperationMode::MAINTENANCE);
     }
   } while (interruptibleTaskPauseMs(BUTTONS_READ_INTERVAL));
 
   LOG_DEBUG("[BTN] Stopped reading buttons\n");
-
-  exitCurrentTask();
 }
 
-[[noreturn]] static void runConveyor(Hardware *hardware) {
-  Conveyor &conveyor = hardware->conveyor;
+static void runConveyor(TaskContext *ctx) {
+  Conveyor &conveyor = ctx->getHardware()->conveyor;
 
   do {
+    LOG_TRACE("[CONV] runConveyor START\n");
     conveyor.update();
+    LOG_TRACE("[CONV] runConveyor END\n");
   } while (interruptibleTaskPauseMs(CONVEYOR_UPDATE_INTERVAL));
 
   LOG_DEBUG("[CONV] Stopping conveyor\n");
 
   conveyor.stop();
   conveyor.update();
-
-  exitCurrentTask();
 }
 
-[[noreturn]] static void pickRandomDirection(Hardware *hardware) {
-  Sorter &sorter = hardware->sorter;
+static void pickRandomDirection(TaskContext *ctx) {
+  Sorter &sorter = ctx->getHardware()->sorter;
 
   do {
     const auto direction = static_cast<SorterDirection>(random(0, 3));
@@ -65,14 +65,12 @@
   LOG_DEBUG("[SORT] Random 'sorting' cancelled\n");
 
   sorter.move(SorterDirection::MIDDLE);
-
-  exitCurrentTask();
 }
 
 String tag = "";
 
-[[noreturn]] static void readAndPrintTags(Hardware *hardware) {
-  TagReader &tagReader = hardware->tagReader;
+static void readAndPrintTags(TaskContext *ctx) {
+  TagReader &tagReader = ctx->getHardware()->tagReader;
 
   do {
     if (tagReader.isNewTagPresent()) {
@@ -91,20 +89,21 @@ String tag = "";
   } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
 
   LOG_DEBUG("[TAG] Stopped reading NFC tags\n");
-
-  exitCurrentTask();
 }
 
-[[noreturn]] void makeHttpRequests(Hardware *hardware) {
-  WebConfigurator &webConfigurator = hardware->webConfigurator;
-  DolibarrClient &dolibarrClient = hardware->dolibarrClient;
+static void makeHttpRequests(TaskContext *ctx) {
+  WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
+  DolibarrClient &dolibarrClient = ctx->getHardware()->dolibarrClient;
 
   WiFiClass::mode(WIFI_STA);  // connect to access point
   WiFi.begin(webConfigurator.getApSsid(), webConfigurator.getApPassword());
   LOG_INFO("[HTTP] Connecting to WIFI");
 
   while (WiFiClass::status() != WL_CONNECTED) {
-    vTaskDelay(500 / portTICK_PERIOD_MS);
+    if (!interruptibleTaskPauseMs(500)) {
+      LOG_DEBUG("[HTTP] Connection cancelled\n");
+      return;
+    }
     LOG_INFO(".");
   }
   LOG_INFO("\n[HTTP] Connected!\n");
@@ -115,20 +114,18 @@ String tag = "";
 
   LOG_DEBUG("[HTTP] Dolibarr status : %u\n", dolibarrStatus);
 
-  for (;;) {
+  do {
     dolibarrClient.sendTag(2101204191, product, warehouse);
 
     dolibarrClient.sendStockMovement(warehouse, product, 1);
-
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-  }
+  } while (interruptibleTaskPauseMs(5000));
 
   // FreeRTOS tasks are not allowed to return
   vTaskDelete(nullptr);
 }
 
-[[noreturn]] void exposeWebConfigurator(Hardware *hardware) {
-  WebConfigurator &webConfigurator = hardware->webConfigurator;
+static void exposeWebConfigurator(TaskContext *ctx) {
+  WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
 
   WiFiClass::mode(WIFI_AP);  // expose access point
   WiFi.softAP(SOFTAP_SSID, SOFTAP_PASSWORD);
@@ -138,33 +135,31 @@ String tag = "";
   webConfigurator.serverListen();
 
   // TODO: check for configuration mode
-  for (;;) {
+  do {
     webConfigurator.handleClient();
-    vTaskDelay(500 / portTICK_PERIOD_MS);
-  }
+  } while (interruptibleTaskPauseMs(500));
 
   webConfigurator.serverClose();
 
-  // FreeRTOS tasks are not allowed to return
-  vTaskDelete(nullptr);
+  LOG_DEBUG("[HTTP] Stopping HTTP requests\n");
 }
 
-const TaskFunction_t readButtonsTask = reinterpret_cast<TaskFunction_t>(&readButtons);
-const TaskFunction_t runConveyorTask = reinterpret_cast<TaskFunction_t>(&runConveyor);
-const TaskFunction_t pickRandomDirectionTask = reinterpret_cast<TaskFunction_t>(&pickRandomDirection);
-const TaskFunction_t makeHttpRequestsTask = reinterpret_cast<TaskFunction_t>(&makeHttpRequests);
+void startProductionMode(TaskContext *ctx) {
+  LOG_INFO("Starting production mode\n");
+  spawnSubTask(readButtons, ctx);
+  spawnSubTask(runConveyor, ctx);
+  spawnSubTask(pickRandomDirection, ctx);
 #if defined(HARDWARE_MFRC522) || defined(HARDWARE_MFRC522_I2C)
-const TaskFunction_t readAndPrintTagsTask = reinterpret_cast<TaskFunction_t>(&readAndPrintTags);
+  spawnSubTask(readAndPrintTags, ctx);
 #endif
-const TaskFunction_t exposeWebConfiguratorTask = reinterpret_cast<TaskFunction_t>(&exposeWebConfigurator);
 
-void startProductionMode(Hardware *hardware) {
-  xTaskCreate(readButtonsTask, "readButtons", 4096, hardware, 8, nullptr);
-  xTaskCreate(runConveyorTask, "runConveyor", 4096, nullptr, 8, nullptr);
-  xTaskCreate(pickRandomDirectionTask, "pickRandomDirection", 4096, nullptr, 8, nullptr);
-#if defined(HARDWARE_MFRC522) || defined(HARDWARE_MFRC522_I2C)
-  xTaskCreate(readAndPrintTagsTask, "readAndPrintTags", 4096, nullptr, 8, nullptr);
-#endif
-  // xTaskCreate(makeHttpRequestsTask, "makeHttpRequests", 4096, nullptr, 8, nullptr);
-  xTaskCreate(exposeWebConfiguratorTask, "exposeWebConfigurator", 4096, nullptr, 8, nullptr);
+  // spawnSubTask(makeHttpRequests, ctx);
+  spawnSubTask(exposeWebConfigurator, ctx);
+
+#ifdef ENV_M5STACK
+  M5.Lcd.clearDisplay();
+  M5.Lcd.setCursor(0, 0);
+  M5.Lcd.println("= Motor Test =");
+  M5.Lcd.println("A: Start B: Mode C: Stop");
+#endif  // defined(ENV_M5STACK)
 }
