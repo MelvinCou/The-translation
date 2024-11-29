@@ -1,6 +1,7 @@
 #ifndef TASK_CONTEXT_HPP
 #define TASK_CONTEXT_HPP
 
+#include <ActiveModule.hpp>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include <freertos/task.h>
@@ -65,10 +66,17 @@ class TaskContext {
   /// @return The requested operation mode, or OperationMode::UNDEFINED if no mode change has been requested yet.
   constexpr OperationMode getRequestedOperationMode() const { return m_requestedMode; }
 
+  constexpr ActiveModule getCurrentMaintenanceModule() const { return m_currentActiveModule; }
+
+  void setMaintenanceActiveModule(ActiveModule newActiveModule) {
+    m_currentActiveModule = newActiveModule;
+  }
+
   /** @} */  // end of TaskContextOperationModeSwitcherAPI
 
  private:
   Hardware *m_hardware;
+  ActiveModule m_currentActiveModule;
 
   // Sub-task management internal state
   bool m_allowSubTaskCreation;
