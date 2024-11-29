@@ -11,19 +11,36 @@
 #include "Buttons.hpp"
 #include "Hardware.hpp"
 #include "Logger.hpp"
+#include "TheTranslationConfig.hpp"
 #include "taskUtil.hpp"
 
-[[deprecated("TEMPORARY CODE: replace with actual configuration routines")]]
-static void temporaryFakeConfigurationModeTask(TaskContext *ctx) {
+static void exposeWebConfigurator(TaskContext *ctx) {
+  WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
   Buttons &buttons = ctx->getHardware()->buttons;
 
+  WiFiClass::mode(WIFI_AP);  // expose access point
+  WiFi.softAP(SOFTAP_SSID, SOFTAP_PASSWORD);
+
+#ifdef ENV_M5STACK
+  M5.Lcd.print("Server IP: ");
+  M5.Lcd.println(WiFi.softAPIP().toString());
+#endif  // defined(ENV_M5STACK)
+
+  webConfigurator.serverListen();
+
   do {
+    webConfigurator.handleClient();
+
     buttons.update();
     if (buttons.BtnB->wasPressed()) {
       LOG_DEBUG("[BTN] B pressed\n");
       ctx->requestOperationModeChange(OperationMode::PRODUCTION);
     }
   } while (interruptibleTaskPauseMs(100));
+
+  webConfigurator.serverClose();
+
+  LOG_DEBUG("[CONF] Stopping Conf server\n");
 }
 
 void startConfigurationMode(TaskContext *ctx) {
@@ -31,8 +48,8 @@ void startConfigurationMode(TaskContext *ctx) {
 #ifdef ENV_M5STACK
   M5.Lcd.clearDisplay();
   M5.Lcd.setCursor(0, 0);
-  M5.Lcd.println("= FAKE Config. Mode =");
+  M5.Lcd.println("= Configuration Mode =");
   M5.Lcd.println("B: Mode");
 #endif  // defined(ENV_M5STACK)
-  spawnSubTask(temporaryFakeConfigurationModeTask, ctx);
+  spawnSubTask(exposeWebConfigurator, ctx);
 }

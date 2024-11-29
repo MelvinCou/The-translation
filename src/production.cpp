@@ -122,26 +122,6 @@ static void makeHttpRequests(TaskContext *ctx) {
   vTaskDelete(nullptr);
 }
 
-static void exposeWebConfigurator(TaskContext *ctx) {
-  WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
-
-  WiFiClass::mode(WIFI_AP);  // expose access point
-  WiFi.softAP(SOFTAP_SSID, SOFTAP_PASSWORD);
-
-  LOG_INFO(" Server IP: %s\n", WiFi.softAPIP().toString().c_str());
-
-  webConfigurator.serverListen();
-
-  // TODO: check for configuration mode
-  do {
-    webConfigurator.handleClient();
-  } while (interruptibleTaskPauseMs(500));
-
-  webConfigurator.serverClose();
-
-  LOG_DEBUG("[HTTP] Stopping HTTP requests\n");
-}
-
 void startProductionMode(TaskContext *ctx) {
   LOG_INFO("Starting production mode\n");
   spawnSubTask(readButtons, ctx);
@@ -151,8 +131,7 @@ void startProductionMode(TaskContext *ctx) {
   spawnSubTask(readAndPrintTags, ctx);
 #endif
 
-  // spawnSubTask(makeHttpRequests, ctx);
-  spawnSubTask(exposeWebConfigurator, ctx);
+  spawnSubTask(makeHttpRequests, ctx);
 
 #ifdef ENV_M5STACK
   M5.Lcd.clearDisplay();
