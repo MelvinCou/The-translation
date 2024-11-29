@@ -35,6 +35,7 @@ class Conveyor {
   void start();
   void stop();
   void update();
+  void unlock();
   ConveyorStatus getCurrentStatus();
   ConveyorStatus getDesiredStatus();
 

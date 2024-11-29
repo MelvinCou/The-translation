@@ -58,6 +58,11 @@ void Conveyor::update() {
   }
 }
 
+void Conveyor::unlock() {
+  m_grbl.unLock();
+}
+
+
 #else
 
 Conveyor::Conveyor() {}

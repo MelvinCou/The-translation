@@ -48,11 +48,11 @@ void setup() {
   conveyor.begin();
 #endif
 
-// #ifdef HARDWARE_MFRC522_I2C
-//   tagReader.begin(&Wire);
-// #else
-//   tagReader.begin();
-// #endif
+#ifdef HARDWARE_MFRC522_I2C
+  tagReader.begin(&Wire);
+#else
+  tagReader.begin();
+#endif
 
   buttons.begin();
   maintenance.begin();
@@ -61,7 +61,7 @@ void setup() {
   xTaskCreatePinnedToCore(&runConveyor, "runConveyor", 4096, nullptr, 8, nullptr, 0);
   xTaskCreatePinnedToCore(&startSorter, "startSorter", 4096, nullptr, 8, nullptr, 0);
 #if defined(HARDWARE_MFRC522) || defined(HARDWARE_MFRC522_I2C)
-  // xTaskCreatePinnedToCore(&readAndPrintTags, "readAndPrintTags", 4096, nullptr, 8, nullptr, 0);
+  xTaskCreatePinnedToCore(&readAndPrintTags, "readAndPrintTags", 4096, nullptr, 8, nullptr, 0);
 #endif
   xTaskCreatePinnedToCore(&makeHttpRequests, "makeHttpRequests", 4096, nullptr, 8, nullptr, 1);
 }
@@ -153,10 +153,18 @@ void startSorter(void *_nothing) {
         M5.Lcd.print(angle);
       } else if(buttons.BtnB->wasPressed()) {
         M5.Lcd.println("MOVE");
-        while(realPosition < angle) {
-          sorter.moveWithSpecificAngle(realPosition);
-          realPosition += 1;
-          vTaskDelay(30);
+        if(realPosition < angle) {
+          while(realPosition < angle) {
+            sorter.moveWithSpecificAngle(realPosition);
+            realPosition += 1;
+            vTaskDelay(30);
+          }
+        } else if(realPosition > angle) {
+          while(realPosition > angle) {
+            sorter.moveWithSpecificAngle(realPosition);
+            realPosition -= 1;
+            vTaskDelay(30);
+          }
         }
       }
 
@@ -174,10 +182,18 @@ String tag = "";
 void readAndPrintTags(void *_nothing) {
   for(;;) {
     if(maintenance.getCurrentModule() == ActiveModule::TAG_READER) {
+      conveyor.unlock();
       buttons.update();
       if(buttons.BtnA->wasPressed()) {
         LOG_DEBUG("[TAG.] RUN TAG_READER \n");
         M5.Lcd.println("SCAN TAG");
+        while(!tagReader.isNewTagPresent()) {
+          M5.Lcd.print(".");
+        }
+        M5.Lcd.println("TAG DETECTED");
+        // if (tagReader.isNewTagPresent()) {
+        //
+        // }
       } else if(buttons.BtnC->wasPressed()) {
         M5.Lcd.println("STOP RFID");
       }
