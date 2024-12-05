@@ -39,36 +39,12 @@ static void readButtons(TaskContext *ctx) {
   LOG_DEBUG("[BTN] Stopped reading buttons\n");
 }
 
-static void runConveyor(TaskContext *ctx) {
-  Conveyor &conveyor = ctx->getHardware()->conveyor;
-
-  do {
-    conveyor.update();
-  } while (conveyor.getCurrentStatus() != ConveyorStatus::CANCELLED && interruptibleTaskPauseMs(CONVEYOR_UPDATE_INTERVAL));
-
-  LOG_DEBUG("[CONV] Stopping conveyor\n");
-
-  conveyor.stop();
-  conveyor.update();
-}
-
-static void pickRandomDirection(TaskContext *ctx) {
-  Sorter &sorter = ctx->getHardware()->sorter;
-
-  do {
-    const auto direction = static_cast<SorterDirection>(random(0, 3));
-    sorter.move(direction);
-  } while (interruptibleTaskPauseMs(1000));
-
-  LOG_DEBUG("[SORT] Random 'sorting' cancelled\n");
-
-  sorter.move(SorterDirection::MIDDLE);
-}
-
 String tag = "";
 
-static void readAndPrintTags(TaskContext *ctx) {
+static void readTagsAndRunConveyor(TaskContext *ctx) {
   TagReader &tagReader = ctx->getHardware()->tagReader;
+  Conveyor &conveyor = ctx->getHardware()->conveyor;
+  Sorter &sorter = ctx->getHardware()->sorter;
 
   do {
     if (tagReader.isNewTagPresent()) {
@@ -82,11 +58,27 @@ static void readAndPrintTags(TaskContext *ctx) {
           tag += two;
         }
         LOG_INFO("[TAG] New Tag %s\n", tag.c_str());
+        if (tag == "9de7d6df") {
+          // hardcoded yellow cube
+          sorter.move(SorterDirection::LEFT);
+        } else if (tag == "7d3dd4df") {
+          // hardcoded green cube
+          sorter.move(SorterDirection::RIGHT);
+        } else {
+          sorter.move(SorterDirection::MIDDLE);
+        }
       }
+    }
+    if (conveyor.getCurrentStatus() != ConveyorStatus::CANCELLED) {
+      conveyor.update();
     }
   } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
 
   LOG_DEBUG("[TAG] Stopped reading NFC tags\n");
+  LOG_DEBUG("[CONV] Stopping conveyor\n");
+
+  conveyor.stop();
+  conveyor.update();
 }
 
 static void makeHttpRequests(TaskContext *ctx) {
@@ -122,12 +114,7 @@ static void makeHttpRequests(TaskContext *ctx) {
 void startProductionMode(TaskContext *ctx) {
   LOG_INFO("Starting production mode\n");
   spawnSubTask(readButtons, ctx);
-  spawnSubTask(runConveyor, ctx);
-  spawnSubTask(pickRandomDirection, ctx);
-#if defined(HARDWARE_MFRC522) || defined(HARDWARE_MFRC522_I2C)
-  spawnSubTask(readAndPrintTags, ctx);
-#endif
-
+  spawnSubTask(readTagsAndRunConveyor, ctx);
   spawnSubTask(makeHttpRequests, ctx);
 
 #ifdef ENV_M5STACK
