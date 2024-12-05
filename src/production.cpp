@@ -117,9 +117,6 @@ static void makeHttpRequests(TaskContext *ctx) {
 
     dolibarrClient.sendStockMovement(warehouse, product, 1);
   } while (interruptibleTaskPauseMs(5000));
-
-  // FreeRTOS tasks are not allowed to return
-  vTaskDelete(nullptr);
 }
 
 void startProductionMode(TaskContext *ctx) {
