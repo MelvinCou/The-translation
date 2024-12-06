@@ -13,10 +13,9 @@ void Hardware::begin() {
   Serial.begin(115200);
   LOG_DEBUG("[HAL] Initializing hardware...\n");
 #ifdef ENV_M5STACK
-  M5.begin(true, false);                 // Init M5Stack. LCDEnable=true ; SDEnable=false
+  M5.begin(true, false, true, true);     // Init M5Stack. LCDEnable=true ; SDEnable=false ; SerialEnable=true ; I2CEnable=true
   M5.Power.begin();                      // Init power
   M5.lcd.setTextSize(SCREEN_FONT_SIZE);  // Set the text size to 2.
-  Wire.begin(21, 22);
 #else
   conveyor.begin();
   Serial.flush();
