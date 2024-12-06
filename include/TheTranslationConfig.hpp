@@ -55,4 +55,9 @@
 #define DOLIBARR_ENDPOINT_STOCKMOVEMENTS "/stockmovements"
 #pragma endregion "dolibarr configuration"
 
+#pragma region "maintenance mode"
+#define HOLD_BUTTON_TIME 3000
+#define CHANGE_ANGLE_DELAY 30
+#pragma endregion "maintenance mode"
+
 #endif  // !defined(THE_TRANSLATION_CONFIG_HPP)
