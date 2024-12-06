@@ -15,6 +15,16 @@
 #include "ActiveModule.hpp"
 #include "TheTranslationConfig.hpp"
 
+void clearScreen() {
+  M5.Lcd.clearDisplay();
+  M5.Lcd.setCursor(0,0);
+}
+
+void showMenu() {
+  M5.Lcd.println("Maintenance Mode");
+  M5.Lcd.println("A: < B: OK C: >");
+}
+
 static void selectMode(TaskContext *ctx) {
   Buttons &buttons = ctx->getHardware()->buttons;
   int range = 1;
@@ -26,22 +36,16 @@ static void selectMode(TaskContext *ctx) {
         LOG_DEBUG("[BTN] A pressed\n");
         if (range > 1) {
           range -= 1;
-          // clearScreen();
-          M5.Lcd.clearDisplay();
-          M5.Lcd.setCursor(0,0);
-          M5.Lcd.println("Maintenance Mode");
-          M5.Lcd.println("A: < B: OK C: >");
+          clearScreen();
+          showMenu();
           M5.Lcd.println(ACTIVE_MODULES[range]);
         }
       } else if (buttons.BtnC->wasPressed()) {
         LOG_DEBUG("[BTN] C pressed\n");
         if (range < 4 ) {
           range += 1;
-          // clearScreen();
-          M5.Lcd.clearDisplay();
-          M5.Lcd.setCursor(0,0);
-          M5.Lcd.println("Maintenance Mode");
-          M5.Lcd.println("A: < B: OK C: >");
+          clearScreen();
+          showMenu();
           M5.Lcd.println(ACTIVE_MODULES[range]);
         }
       }
@@ -55,9 +59,7 @@ static void selectMode(TaskContext *ctx) {
           case 0 :
           default:  ctx->setMaintenanceActiveModule(ActiveModule::NONE);
         }
-        // clearScreen();
-        M5.Lcd.clearDisplay();
-        M5.Lcd.setCursor(0,0);
+        clearScreen();
         M5.Lcd.println("Maintenance Mode for: ");
         M5.Lcd.println(ACTIVE_MODULES[range]);
         LOG_DEBUG("[MAINT.] Changing module: %s\n", ACTIVE_MODULES[range]);
@@ -81,7 +83,7 @@ static void runConveyor(TaskContext *ctx) {
       conveyor.update();
       if(buttons.BtnA->wasPressed()) {
         LOG_DEBUG("[CONV.] RUN CONVEYOR \n");
-        M5.Lcd.println("RUN MOTOR"); // TODO ML manage speed
+        M5.Lcd.println("RUN MOTOR");
         conveyor.start();
       } else if(buttons.BtnC->wasPressed()) {
         M5.Lcd.println("STOP MOTOR");
@@ -91,11 +93,8 @@ static void runConveyor(TaskContext *ctx) {
       if(buttons.BtnB->pressedFor(3000)) {
         LOG_DEBUG("[MAINT.] Exit module %s\n",ACTIVE_MODULES[1]);
         ctx->setMaintenanceActiveModule(ActiveModule::NONE);
-        // clearScreen();
-        M5.Lcd.clearDisplay();
-        M5.Lcd.setCursor(0,0);
-        M5.Lcd.println("Maintenance Mode");
-        M5.Lcd.println("A: < B: OK C: >");
+        clearScreen();
+        showMenu();
       }
     }
   } while (interruptibleTaskPauseMs(BUTTONS_READ_INTERVAL));
@@ -113,18 +112,14 @@ static void startSorter(TaskContext *ctx) {
       if(buttons.BtnC->wasPressed()) {
         LOG_INFO("[SORT.] INCREASE ANGLE \n");
         angle += 1;
-        // clearScreen();
-        M5.Lcd.clearDisplay();
-        M5.Lcd.setCursor(0,0);
+        clearScreen();
         M5.Lcd.println("ANGLE : ");
         M5.Lcd.print(angle);
 
       } else if(buttons.BtnA->wasPressed()) {
         LOG_INFO("[SORT.] DECREASE ANGLE \n");
         angle -= 1;
-        // clearScreen();
-        M5.Lcd.clearDisplay();
-        M5.Lcd.setCursor(0,0);
+        clearScreen();
         M5.Lcd.println("ANGLE : ");
         M5.Lcd.print(angle);
       } else if(buttons.BtnB->wasPressed()) {
@@ -146,11 +141,8 @@ static void startSorter(TaskContext *ctx) {
       if(buttons.BtnB->pressedFor(3000)) {
         LOG_DEBUG("[MAINT.] Exit module %s\n",ACTIVE_MODULES[1]);
         ctx->setMaintenanceActiveModule(ActiveModule::NONE);
-        // clearScreen();
-        M5.Lcd.clearDisplay();
-        M5.Lcd.setCursor(0,0);
-        M5.Lcd.println("Maintenance Mode");
-        M5.Lcd.println("A: < B: OK C: >");
+        clearScreen();
+        showMenu();
       }
     }
   } while(interruptibleTaskPauseMs(BUTTONS_READ_INTERVAL));
@@ -190,11 +182,8 @@ static void readAndPrintTags(TaskContext *ctx) {
       if(buttons.BtnB->pressedFor(3000)) {
         LOG_DEBUG("[MAINT.] Exit module %s\n",ACTIVE_MODULES[1]);
         ctx->setMaintenanceActiveModule(ActiveModule::NONE);
-        // clearScreen();
-        M5.Lcd.clearDisplay();
-        M5.Lcd.setCursor(0,0);
-        M5.Lcd.println("Maintenance Mode");
-        M5.Lcd.println("A: < B: OK C: >");
+        clearScreen();
+        showMenu();
       }
     }
   } while(interruptibleTaskPauseMs(TAG_READER_INTERVAL));
@@ -203,6 +192,7 @@ static void readAndPrintTags(TaskContext *ctx) {
 static void makeHttpRequests(TaskContext *ctx) {
   Buttons &buttons = ctx->getHardware()->buttons;
   WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
+  DolibarrClient &dolibarrClient = ctx->getHardware()->dolibarrClient;
   do {
     if(ctx->getCurrentMaintenanceModule() == ActiveModule::DOLIBARR) {
       buttons.update();
@@ -219,19 +209,25 @@ static void makeHttpRequests(TaskContext *ctx) {
           }
           M5.Lcd.print(".");
         }
+        M5.Lcd.println("Connection successful");
+
       } else if(buttons.BtnC->wasPressed()) {
-        M5.Lcd.println("SEND PRODUCT REQUEST");
-        // TODO ML print the result
+        M5.Lcd.println("SEND STATUS REQUEST");
+        DolibarrClientStatus dolibarrStatus =
+          dolibarrClient.configure(webConfigurator.getApiUrl(), webConfigurator.getApiKey(), webConfigurator.getApiWarehouseError());
+        LOG_DEBUG("[HTTP] Dolibarr status : %u\n", dolibarrStatus);
+        if(dolibarrStatus == DolibarrClientStatus::READY) {
+          M5.Lcd.println("Successful Request to Dolibarr - Status READY");
+        } else {
+          M5.Lcd.println("Failed Request to Dolibarr - Status ERROR");
+        }
       }
 
       if(buttons.BtnB->pressedFor(3000)) {
         LOG_DEBUG("[MAINT.] Exit module %s\n",ACTIVE_MODULES[1]);
         ctx->setMaintenanceActiveModule(ActiveModule::NONE);
-        // clearScreen();
-        M5.Lcd.clearDisplay();
-        M5.Lcd.setCursor(0,0);
-        M5.Lcd.println("Maintenance Mode");
-        M5.Lcd.println("A: < B: OK C: >");
+        clearScreen();
+        showMenu();
       }
     }
   } while(interruptibleTaskPauseMs(BUTTONS_READ_INTERVAL));
@@ -241,11 +237,9 @@ static void makeHttpRequests(TaskContext *ctx) {
 void startMaintenanceMode(TaskContext *ctx) {
   LOG_INFO("Starting maintenance mode\n");
 #ifdef ENV_M5STACK
-  M5.Lcd.clearDisplay();
-  M5.Lcd.setCursor(0, 0);
-  M5.Lcd.println("= Maintenance Mode =");
-  M5.Lcd.println("A: < B: OK C: >");
-  // M5.Lcd.println("Hold B to change to configuration mode");
+  clearScreen();
+  showMenu();
+  M5.Lcd.println("Hold C to change to configuration mode");
 #endif  // defined(ENV_M5STACK)
   ctx->setMaintenanceActiveModule(ActiveModule::NONE);
   LOG_DEBUG("[MAINT.] Active Module : %s\n", ACTIVE_MODULES[static_cast<int>(ctx->getCurrentMaintenanceModule())]);
@@ -255,17 +249,3 @@ void startMaintenanceMode(TaskContext *ctx) {
   spawnSubTask(readAndPrintTags, ctx);
   spawnSubTask(makeHttpRequests, ctx);
 }
-
-// void exitModule() {
-//   LOG_DEBUG("[MAINT.] Exit module \n");
-//   maintenance.changeModule(static_cast<int>(ActiveModule::NONE));
-//   maintenance.changeRange(0, false);
-//   // clearScreen();
-//   M5.Lcd.println("Maintenance Mode");
-//   M5.Lcd.println("A: < B: OK C: >");
-// }
-
-// static void clearScreen() {
-//   M5.Lcd.clearDisplay();
-//   M5.Lcd.setCursor(0,0);
-// }
