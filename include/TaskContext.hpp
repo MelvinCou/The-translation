@@ -1,10 +1,11 @@
 #ifndef TASK_CONTEXT_HPP
 #define TASK_CONTEXT_HPP
 
-#include <ActiveModule.hpp>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include <freertos/task.h>
+
+#include <ActiveModule.hpp>
 
 #include "OperationMode.hpp"
 
@@ -68,9 +69,7 @@ class TaskContext {
 
   constexpr ActiveModule getCurrentMaintenanceModule() const { return m_currentActiveModule; }
 
-  void setMaintenanceActiveModule(ActiveModule newActiveModule) {
-    m_currentActiveModule = newActiveModule;
-  }
+  void setMaintenanceActiveModule(ActiveModule newActiveModule) { m_currentActiveModule = newActiveModule; }
 
   /** @} */  // end of TaskContextOperationModeSwitcherAPI
 

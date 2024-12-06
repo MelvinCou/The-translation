@@ -31,9 +31,7 @@ void Sorter::move(SorterDirection direction) {
   }
 }
 
-void Sorter::moveWithSpecificAngle(int angle) {
-  goPlus.Servo_write_angle(SORTER_SERVO_NUMBER,angle);
-}
+void Sorter::moveWithSpecificAngle(int angle) { goPlus.Servo_write_angle(SORTER_SERVO_NUMBER, angle); }
 
 #else
 

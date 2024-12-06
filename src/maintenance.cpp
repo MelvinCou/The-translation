@@ -4,6 +4,8 @@
 
 #ifdef ENV_M5STACK
 #include <M5Stack.h>
+
+#include <lcdScreen.hpp>
 #endif  // defined(ENV_M5STACK)
 
 #include <TaskContext.hpp>
@@ -15,11 +17,6 @@
 #include "TheTranslationConfig.hpp"
 #include "taskUtil.hpp"
 #ifdef ENV_M5STACK
-void clearScreen() {
-  M5.Lcd.clearDisplay();
-  M5.Lcd.setCursor(0, 0); 
-}
-
 void showMenu() {
   M5.Lcd.println("Maintenance Mode");
   M5.Lcd.println("A: < B: OK C: >");
