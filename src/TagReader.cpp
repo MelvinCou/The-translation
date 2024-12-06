@@ -39,4 +39,8 @@ TagReader::~TagReader() {}
 
 void TagReader::begin() {}
 
+bool TagReader::isNewTagPresent() { return false; }
+
+unsigned char TagReader::readTag([[maybe_unused]] unsigned char *buffer) { return 0; }
+
 #endif  // defined(HARDWARE_MFRC522) || defined(HARDWARE_MFRC522_I2C)
