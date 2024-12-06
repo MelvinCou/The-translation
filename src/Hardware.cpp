@@ -5,6 +5,7 @@
 #endif  // defined(ENV_M5STACK)
 
 #include "Logger.hpp"
+#include "TheTranslationConfig.hpp"
 
 Hardware::Hardware() : tagReader() {}
 
@@ -12,9 +13,9 @@ void Hardware::begin() {
   Serial.begin(115200);
   LOG_DEBUG("[HAL] Initializing hardware...\n");
 #ifdef ENV_M5STACK
-  M5.begin();             // Init M5Stack.
-  M5.Power.begin();       // Init power
-  M5.lcd.setTextSize(2);  // Set the text size to 2.
+  M5.begin(true, false);                 // Init M5Stack. LCDEnable=true ; SDEnable=false
+  M5.Power.begin();                      // Init power
+  M5.lcd.setTextSize(SCREEN_FONT_SIZE);  // Set the text size to 2.
   Wire.begin(21, 22);
 #else
   conveyor.begin();
