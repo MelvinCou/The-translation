@@ -128,13 +128,13 @@ static void startSorter(TaskContext *ctx) {
           while(realPosition < angle) {
             sorter.moveWithSpecificAngle(realPosition);
             realPosition += 1;
-            vTaskDelay(30);
+            interruptibleTaskPauseMs(30);
           }
         } else if(realPosition > angle) {
           while(realPosition > angle) {
             sorter.moveWithSpecificAngle(realPosition);
             realPosition -= 1;
-            vTaskDelay(30);
+            interruptibleTaskPauseMs(30);
           }
         }
       }
