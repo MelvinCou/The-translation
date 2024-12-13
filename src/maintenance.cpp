@@ -133,17 +133,16 @@ static void startSorter(TaskContext *ctx) {
       } else if (buttons.BtnB->wasPressed()) {
         M5.Lcd.println("MOVE");
         if (realPosition < angle) {
-          while (realPosition < angle) {
+          do {
             sorter.moveWithSpecificAngle(realPosition);
             realPosition += 1;
-            interruptibleTaskPauseMs(CHANGE_ANGLE_DELAY);
-          }
+          } while (realPosition < angle && interruptibleTaskPauseMs(CHANGE_ANGLE_DELAY));
+
         } else if (realPosition > angle) {
-          while (realPosition > angle) {
+          do {
             sorter.moveWithSpecificAngle(realPosition);
             realPosition -= 1;
-            interruptibleTaskPauseMs(CHANGE_ANGLE_DELAY);
-          }
+          } while (realPosition > angle && interruptibleTaskPauseMs(CHANGE_ANGLE_DELAY));
         }
       }
       if (buttons.BtnB->pressedFor(HOLD_BUTTON_TIME)) {
