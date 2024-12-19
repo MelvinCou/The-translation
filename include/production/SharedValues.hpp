@@ -16,7 +16,7 @@ struct SharedValues {
       char tag[32];
       // API client values
       DolibarrClientStatus dolibarrClientStatus;
-      int targetWarhouse;
+      int targetWarehouse;
     } production;
   };
 };
