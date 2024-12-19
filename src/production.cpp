@@ -40,10 +40,12 @@ String tag = "";
 static void readTagsAndRunConveyor(TaskContext *ctx) {
   TagReader &tagReader = ctx->getHardware()->tagReader;
   Conveyor &conveyor = ctx->getHardware()->conveyor;
-  Sorter &sorter = ctx->getHardware()->sorter;
+  SharedValues &values = ctx->getSharedValues();
 
   do {
     if (tagReader.isNewTagPresent()) {
+      values.production.isNewTagPresent = false;
+
       unsigned char buffer[10];
       unsigned char size = tagReader.readTag(buffer);
       if (size > 0) {
@@ -53,16 +55,10 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
           sniprintf(two, sizeof(two), "%02x", buffer[i]);
           tag += two;
         }
+        memcpy(values.production.tag, tag.c_str(), tag.length());
+        values.production.isNewTagPresent = true;
+
         LOG_INFO("[TAG] New Tag %s\n", tag.c_str());
-        if (tag == "9de7d6df") {
-          // hardcoded yellow cube
-          sorter.move(SorterDirection::LEFT);
-        } else if (tag == "7d3dd4df") {
-          // hardcoded green cube
-          sorter.move(SorterDirection::RIGHT);
-        } else {
-          sorter.move(SorterDirection::MIDDLE);
-        }
       }
     }
     if (conveyor.getCurrentStatus() != ConveyorStatus::CANCELLED) {
@@ -77,9 +73,33 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
   conveyor.update();
 }
 
+static void sortPackages(TaskContext *ctx) {
+  Sorter &sorter = ctx->getHardware()->sorter;
+  SharedValues &values = ctx->getSharedValues();
+
+  do {
+    switch (static_cast<SorterDirection>(values.production.targetWarhouse)) {
+      case SorterDirection::LEFT:
+        sorter.move(SorterDirection::LEFT);
+        break;
+      case SorterDirection::MIDDLE:
+        sorter.move(SorterDirection::MIDDLE);
+        break;
+      case SorterDirection::RIGHT:
+        sorter.move(SorterDirection::RIGHT);
+        break;
+      default:
+        LOG_WARN("[SORT.] Invalide direction: %u\n", values.production.targetWarhouse);
+        sorter.move(SorterDirection::RIGHT);
+        break;
+    }
+  } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
+}
+
 static void makeHttpRequests(TaskContext *ctx) {
   WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
   DolibarrClient &dolibarrClient = ctx->getHardware()->dolibarrClient;
+  SharedValues &values = ctx->getSharedValues();
 
   WiFiClass::mode(WIFI_STA);  // connect to access point
   WiFi.begin(webConfigurator.getApSsid(), webConfigurator.getApPassword());
@@ -95,23 +115,44 @@ static void makeHttpRequests(TaskContext *ctx) {
   LOG_INFO("\n[HTTP] Connected!\n");
 
   int product = 0, warehouse = 0;
-  DolibarrClientStatus dolibarrStatus =
+  values.production.dolibarrClientStatus =
       dolibarrClient.configure(webConfigurator.getApiUrl(), webConfigurator.getApiKey(), webConfigurator.getApiWarehouseError());
 
-  LOG_DEBUG("[HTTP] Dolibarr status : %u\n", dolibarrStatus);
+  LOG_DEBUG("[HTTP] Dolibarr status : %u\n", values.production.dolibarrClientStatus);
 
-  do {
-    dolibarrClient.sendTag(2101204191, product, warehouse);
+  switch (values.production.dolibarrClientStatus) {
+    case DolibarrClientStatus::READY:
+      do {
+        if (values.production.isNewTagPresent) {
+          LOG_INFO("[TAG] New Tag makeHttpRequests %s\n", values.production.tag);
+          char *endptr;
+          values.production.dolibarrClientStatus = dolibarrClient.sendTag(strtol(values.production.tag, &endptr, 16), product, warehouse);
+          values.production.dolibarrClientStatus = dolibarrClient.sendStockMovement(warehouse, product, 1);
 
-    dolibarrClient.sendStockMovement(warehouse, product, 1);
-  } while (interruptibleTaskPauseMs(5000));
+          values.production.targetWarhouse = warehouse;
+          values.production.isNewTagPresent = false;
+        }
+      } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
+      break;
+
+    default:
+      LOG_ERROR("[HTTP] Dolibarr client configuration failed. Aborting.\n");
+      break;
+  }
 }
 
 void startProductionMode(TaskContext *ctx) {
   LOG_INFO("Starting production mode\n");
+
+  SharedValues &values = ctx->getSharedValues();
+  memset(values.production.tag, 0, 32);
+  values.production.isNewTagPresent = false;
+  values.production.targetWarhouse = 1;
+
   spawnSubTask(readButtons, ctx);
   spawnSubTask(readTagsAndRunConveyor, ctx);
   spawnSubTask(makeHttpRequests, ctx);
+  spawnSubTask(sortPackages, ctx);
 
   M5.Lcd.clearDisplay();
   M5.Lcd.setCursor(0, 0);
