@@ -3,6 +3,7 @@
 #include "Hardware.hpp"
 #include "Logger.hpp"
 #include "OperationMode.hpp"
+#include "production/ProductionValues.hpp"
 
 void startProductionMode(TaskContext *ctx);
 void startMaintenanceMode(TaskContext *ctx);
@@ -13,6 +14,7 @@ void startConfigurationMode(TaskContext *ctx);
     // Wait for a call to requestOperationModeChange()
     ctx->waitForModeOperationModeChange();
     OperationMode newMode = ctx->getRequestedOperationMode();
+    OperationMode oldMode = ctx->getCurrentOperationMode();
 
     if (newMode == OperationMode::UNDEFINED) {
       LOG_ERROR("[MODE] Received invalid mode change request\n");
@@ -37,6 +39,18 @@ void startConfigurationMode(TaskContext *ctx);
     ctx->setOperationMode(newMode);
     ctx->subTasksClear();
     ctx->subTaskAllowTaskCreation(true);
+
+    switch (newMode) {
+      case OperationMode::PRODUCTION: {
+        auto values = ctx->getSharedValues<ProductionValues>();
+        if (values != nullptr) {
+          delete values;
+        }
+        break;
+      }
+      default:
+        break;
+    }
 
     switch (newMode) {
       case OperationMode::PRODUCTION:

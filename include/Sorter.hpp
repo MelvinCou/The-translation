@@ -2,7 +2,7 @@
 #define SORTER_HPP
 
 enum class SorterDirection {
-  LEFT,
+  LEFT = 1,
   MIDDLE,
   RIGHT,
 };

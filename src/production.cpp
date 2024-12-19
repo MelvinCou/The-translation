@@ -10,6 +10,7 @@
 #include "Hardware.hpp"
 #include "Logger.hpp"
 #include "TheTranslationConfig.hpp"
+#include "production/ProductionValues.hpp"
 #include "taskUtil.hpp"
 
 static void readButtons(TaskContext *ctx) {
@@ -36,11 +37,13 @@ static void readButtons(TaskContext *ctx) {
 }
 
 String tag = "";
+char *endptr;
+int base10tag;
 
 static void readTagsAndRunConveyor(TaskContext *ctx) {
   TagReader &tagReader = ctx->getHardware()->tagReader;
   Conveyor &conveyor = ctx->getHardware()->conveyor;
-  Sorter &sorter = ctx->getHardware()->sorter;
+  auto values = ctx->getSharedValues<ProductionValues>();
 
   do {
     if (tagReader.isNewTagPresent()) {
@@ -53,16 +56,12 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
           sniprintf(two, sizeof(two), "%02x", buffer[i]);
           tag += two;
         }
+        taskENTER_CRITICAL(&values->subTaskLock);
+        base10tag = strtol(tag.c_str(), &endptr, 16);
+        values->tags.push(&base10tag);
+        taskEXIT_CRITICAL(&values->subTaskLock);
+
         LOG_INFO("[TAG] New Tag %s\n", tag.c_str());
-        if (tag == "9de7d6df") {
-          // hardcoded yellow cube
-          sorter.move(SorterDirection::LEFT);
-        } else if (tag == "7d3dd4df") {
-          // hardcoded green cube
-          sorter.move(SorterDirection::RIGHT);
-        } else {
-          sorter.move(SorterDirection::MIDDLE);
-        }
       }
     }
     if (conveyor.getCurrentStatus() != ConveyorStatus::CANCELLED) {
@@ -77,9 +76,33 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
   conveyor.update();
 }
 
+static void sortPackages(TaskContext *ctx) {
+  Sorter &sorter = ctx->getHardware()->sorter;
+  auto values = ctx->getSharedValues<ProductionValues>();
+
+  do {
+    switch (static_cast<SorterDirection>(values->targetWarehouse)) {
+      case SorterDirection::LEFT:
+        sorter.move(SorterDirection::LEFT);
+        break;
+      case SorterDirection::MIDDLE:
+        sorter.move(SorterDirection::MIDDLE);
+        break;
+      case SorterDirection::RIGHT:
+        sorter.move(SorterDirection::RIGHT);
+        break;
+      default:
+        LOG_WARN("[SORT.] Invalide direction: %u\n", values->targetWarehouse);
+        sorter.move(SorterDirection::RIGHT);
+        break;
+    }
+  } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
+}
+
 static void makeHttpRequests(TaskContext *ctx) {
   WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
   DolibarrClient &dolibarrClient = ctx->getHardware()->dolibarrClient;
+  auto values = ctx->getSharedValues<ProductionValues>();
 
   WiFiClass::mode(WIFI_STA);  // connect to access point
   WiFi.begin(webConfigurator.getApSsid(), webConfigurator.getApPassword());
@@ -94,24 +117,44 @@ static void makeHttpRequests(TaskContext *ctx) {
   }
   LOG_INFO("\n[HTTP] Connected!\n");
 
-  int product = 0, warehouse = 0;
-  DolibarrClientStatus dolibarrStatus =
+  int product = 0, warehouse = 0, tag = 0;
+  bool newTag = false;
+  values->dolibarrClientStatus =
       dolibarrClient.configure(webConfigurator.getApiUrl(), webConfigurator.getApiKey(), webConfigurator.getApiWarehouseError());
 
-  LOG_DEBUG("[HTTP] Dolibarr status : %u\n", dolibarrStatus);
+  LOG_DEBUG("[HTTP] Dolibarr status : %u\n", values->dolibarrClientStatus);
 
-  do {
-    dolibarrClient.sendTag(2101204191, product, warehouse);
+  switch (values->dolibarrClientStatus) {
+    case DolibarrClientStatus::READY:
+      do {
+        taskENTER_CRITICAL(&values->subTaskLock);
+        newTag = values->tags.pop(&tag);
+        taskEXIT_CRITICAL(&values->subTaskLock);
 
-    dolibarrClient.sendStockMovement(warehouse, product, 1);
-  } while (interruptibleTaskPauseMs(5000));
+        if (newTag) {
+          values->dolibarrClientStatus = dolibarrClient.sendTag(tag, product, warehouse);
+          values->dolibarrClientStatus = dolibarrClient.sendStockMovement(warehouse, product, 1);
+
+          values->targetWarehouse = warehouse;
+        }
+      } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
+      break;
+
+    default:
+      LOG_ERROR("[HTTP] Dolibarr client configuration failed. Aborting.\n");
+      break;
+  }
 }
 
 void startProductionMode(TaskContext *ctx) {
   LOG_INFO("Starting production mode\n");
+
+  ctx->setSharedValues(new ProductionValues());
+
   spawnSubTask(readButtons, ctx);
   spawnSubTask(readTagsAndRunConveyor, ctx);
   spawnSubTask(makeHttpRequests, ctx);
+  spawnSubTask(sortPackages, ctx);
 
   M5.Lcd.clearDisplay();
   M5.Lcd.setCursor(0, 0);
