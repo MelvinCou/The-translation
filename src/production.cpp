@@ -1,7 +1,11 @@
 #include <HTTPClient.h>
 #include <M5Stack.h>
+
+#ifndef ENV_SIMULATION
+#include <HTTPClient.h>
 #include <WiFi.h>
 #include <freertos/task.h>
+#endif  // !defined(ENV_SIMULATION)
 
 #include <OperationMode.hpp>
 #include <TaskContext.hpp>
@@ -126,6 +130,7 @@ static void sortPackages(TaskContext *ctx) {
   } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
 }
 
+#ifndef ENV_SIMULATION
 static void makeHttpRequests(TaskContext *ctx) {
   WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
   DolibarrClient &dolibarrClient = ctx->getHardware()->dolibarrClient;
@@ -171,6 +176,7 @@ static void makeHttpRequests(TaskContext *ctx) {
       break;
   }
 }
+#endif  // !defined(ENV_SIMULATION)
 
 void startProductionMode(TaskContext *ctx) {
   LOG_INFO("Starting production mode\n");
@@ -180,8 +186,10 @@ void startProductionMode(TaskContext *ctx) {
   spawnSubTask(readButtons, ctx);
   spawnSubTask(readTagsAndRunConveyor, ctx);
   spawnSubTask(testTagReader, ctx);
-  spawnSubTask(makeHttpRequests, ctx);
   spawnSubTask(sortPackages, ctx);
+#ifndef ENV_SIMULATION
+  spawnSubTask(makeHttpRequests, ctx);
+#endif
 
   M5.Lcd.clearDisplay();
   M5.Lcd.setCursor(0, 0);
