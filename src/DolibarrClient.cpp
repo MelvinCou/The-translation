@@ -67,6 +67,8 @@ DolibarrClientStatus DolibarrClient::sendTag(const int barcode, int& product, in
   client.begin(endpoint);
   client.addHeader(DOLIBARR_HEADER_APIKEY, m_key);
 
+  LOG_TRACE("[HTTP] sendTag request to send: %s\n", endpoint.c_str());
+
   int httpCode = client.GET();
   endpoint.clear();
 
