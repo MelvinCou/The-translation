@@ -1,19 +1,15 @@
-#ifdef ENV_M5STACK
-#include <M5Stack.h>
-#endif  // defined(ENV_M5STACK)
-
-#include "TheTranslationConfig.hpp"
 #include "lcdScreen.hpp"
 
+#include <M5Stack.h>
+
+#include "TheTranslationConfig.hpp"
+
 void clearScreen() {
-#ifdef ENV_M5STACK
   M5.Lcd.clearDisplay();
   M5.Lcd.setCursor(0, 0);
-#endif  // defined(ENV_M5STACK)
 }
 
 void printConfiguration(WebConfigurator& conf) {
-#ifdef ENV_M5STACK
   M5.Lcd.setTextSize(1);
 
   M5.Lcd.println("=== SOFTAP ===");
@@ -47,7 +43,6 @@ void printConfiguration(WebConfigurator& conf) {
   M5.Lcd.println();
 
   M5.Lcd.setTextSize(SCREEN_FONT_SIZE);
-#endif  // defined(ENV_M5STACK)
 }
 
 void printProductionStatus() {

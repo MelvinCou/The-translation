@@ -27,13 +27,5 @@ jobs:
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio
 
-
-
       - name: Build PlatformIO m5stack-core2
         run: pio run --environment m5stack-core2
-
-      - name: Build PlatformIO esp32-bare
-        run: pio run --environment esp32-bare
-
-      - name: Build PlatformIO esp32-mfrc522
-        run: pio run --environment esp32-mfrc522

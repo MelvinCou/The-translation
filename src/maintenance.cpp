@@ -1,14 +1,10 @@
 #include <Arduino.h>
+#include <M5Stack.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#ifdef ENV_M5STACK
-#include <M5Stack.h>
-
-#include <lcdScreen.hpp>
-#endif  // defined(ENV_M5STACK)
-
 #include <TaskContext.hpp>
+#include <lcdScreen.hpp>
 
 #include "ActiveModule.hpp"
 #include "Buttons.hpp"
@@ -16,7 +12,6 @@
 #include "Logger.hpp"
 #include "TheTranslationConfig.hpp"
 #include "taskUtil.hpp"
-#ifdef ENV_M5STACK
 void showMenu() {
   M5.Lcd.println("Maintenance Mode");
   M5.Lcd.println("A: < B: OK C: >");
@@ -239,10 +234,9 @@ static void makeHttpRequests(TaskContext *ctx) {
     }
   } while (interruptibleTaskPauseMs(BUTTONS_READ_INTERVAL));
 }
-#endif
+
 void startMaintenanceMode(TaskContext *ctx) {
   LOG_INFO("Starting maintenance mode\n");
-#ifdef ENV_M5STACK
   clearScreen();
   showMenu();
   M5.Lcd.println("Hold C to change to configuration mode");
@@ -253,5 +247,4 @@ void startMaintenanceMode(TaskContext *ctx) {
   spawnSubTask(startSorter, ctx);
   spawnSubTask(readAndPrintTags, ctx);
   spawnSubTask(makeHttpRequests, ctx);
-#endif
 }

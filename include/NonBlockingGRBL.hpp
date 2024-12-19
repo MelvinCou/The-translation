@@ -6,10 +6,6 @@
 #ifndef _NON_BLOCKING_GRBL_HPP_
 #define _NON_BLOCKING_GRBL_HPP_
 
-#ifndef HARDWARE_GRBL
-#error "This file is only for use with the M5Stack Core2"
-#endif  // !defined(HARDWARE_GRBL)
-
 #include <Arduino.h>
 #include <Wire.h>
 

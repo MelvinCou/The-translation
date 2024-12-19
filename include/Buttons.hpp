@@ -1,11 +1,7 @@
 #ifndef BUTTONS_HPP
 #define BUTTONS_HPP
 
-#ifdef ENV_M5STACK
 #include <utility/Button.h>
-#else
-#include <JC_Button.h>
-#endif
 
 class Buttons {
  public:

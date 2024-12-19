@@ -3,12 +3,6 @@
 #include "Logger.hpp"
 #include "TheTranslationConfig.hpp"
 
-#if CONVEYOR_CURRENT_STATUS_PIN >= 0 || CONVEYOR_DESIRED_STATUS_PIN >= 0
-#include <Arduino.h>
-#endif  // CONVEYOR_CURRENT_STATUS_PIN >= 0 || CONVEYOR_DESIRED_STATUS_PIN >= 0
-
-#ifdef HARDWARE_GRBL
-
 Conveyor::Conveyor() : m_grbl(CONVEYOR_GRBL_I2C_ADDR) {}
 
 void Conveyor::begin(TwoWire *wire) {
@@ -68,38 +62,6 @@ void Conveyor::update() {
     m_grbl.unLock();
   }
 }
-
-#else
-
-Conveyor::Conveyor() {}
-
-void Conveyor::begin() {
-  LOG_DEBUG("[CONV] Initializing...\n");
-  m_desiredStatus = ConveyorStatus::STOPPED;
-  m_currentStatus = ConveyorStatus::STOPPED;
-  m_motorDelay = 0;
-#if CONVEYOR_CURRENT_STATUS_PIN >= 0
-  pinMode(CONVEYOR_CURRENT_STATUS_PIN, OUTPUT);
-#endif  // CONVEYOR_CURRENT_STATUS_PIN >= 0
-#if CONVEYOR_DESIRED_STATUS_PIN >= 0
-  pinMode(CONVEYOR_DESIRED_STATUS_PIN, OUTPUT);
-#endif  // CONVEYOR_DESIRED_STATUS_PIN >= 0
-}
-
-void Conveyor::update() {
-  if (m_currentStatus != m_desiredStatus && m_motorDelay++ > CONVEYOR_SIMULATED_DELAY_UPDATES) {
-    LOG_DEBUG("[CONV] Changing status: %s\n", CONVEYOR_STATUS_STRINGS[static_cast<int>(m_desiredStatus)]);
-    m_motorDelay = 0;
-    m_currentStatus = m_desiredStatus;
-  }
-#if CONVEYOR_CURRENT_STATUS_PIN >= 0
-  digitalWrite(CONVEYOR_CURRENT_STATUS_PIN, m_currentStatus == ConveyorStatus::RUNNING ? HIGH : LOW);
-#endif  // CONVEYOR_CURRENT_STATUS_PIN >= 0
-#if CONVEYOR_DESIRED_STATUS_PIN >= 0
-  digitalWrite(CONVEYOR_DESIRED_STATUS_PIN, m_desiredStatus == ConveyorStatus::RUNNING ? HIGH : LOW);
-#endif  // CONVEYOR_DESIRED_STATUS_PIN >= 0
-}
-#endif  // defined(HARDWARE_GRBL)
 
 void Conveyor::start() {
   LOG_DEBUG("[CONV] Starting...\n");

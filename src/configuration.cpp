@@ -1,10 +1,7 @@
 #include <Arduino.h>
+#include <M5Stack.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-
-#ifdef ENV_M5STACK
-#include <M5Stack.h>
-#endif  // defined(ENV_M5STACK)
 
 #include <TaskContext.hpp>
 
@@ -16,19 +13,15 @@
 #include "taskUtil.hpp"
 
 static void printHeader() {
-#ifdef ENV_M5STACK
   clearScreen();
   M5.Lcd.println("= Configuration Mode =");
   M5.Lcd.println("B: Mode C: Show/Hide configuration");
   M5.Lcd.println();
-#endif  // defined(ENV_M5STACK)
 }
 
 static void printIP() {
-#ifdef ENV_M5STACK
   M5.Lcd.print("Server IP=");
   M5.Lcd.println(WiFi.softAPIP().toString());
-#endif  // defined(ENV_M5STACK)
 }
 
 static void readButtons(TaskContext *ctx) {
