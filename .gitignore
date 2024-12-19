@@ -1,3 +1,8 @@
 .pio
 .vscode
 .idea
+
+# ESP-IDF
+.cache/
+cmake-build-esp-idf-debug/
+build/

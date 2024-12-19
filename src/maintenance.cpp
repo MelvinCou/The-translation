@@ -191,6 +191,7 @@ static void readAndPrintTags(TaskContext *ctx) {
   } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
 }
 
+#ifndef ENV_SIMULATION
 static void makeHttpRequests(TaskContext *ctx) {
   Buttons &buttons = ctx->getHardware()->buttons;
   WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
@@ -234,6 +235,7 @@ static void makeHttpRequests(TaskContext *ctx) {
     }
   } while (interruptibleTaskPauseMs(BUTTONS_READ_INTERVAL));
 }
+#endif
 
 void startMaintenanceMode(TaskContext *ctx) {
   LOG_INFO("Starting maintenance mode\n");
@@ -246,5 +248,7 @@ void startMaintenanceMode(TaskContext *ctx) {
   spawnSubTask(runConveyor, ctx);
   spawnSubTask(startSorter, ctx);
   spawnSubTask(readAndPrintTags, ctx);
+#ifndef ENV_SIMULATION
   spawnSubTask(makeHttpRequests, ctx);
+#endif
 }

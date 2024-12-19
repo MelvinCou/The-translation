@@ -18,7 +18,7 @@ void printConfiguration(WebConfigurator& conf) {
   M5.Lcd.print("Password=");
   M5.Lcd.println(SOFTAP_PASSWORD);
   M5.Lcd.print("IP=");
-  M5.Lcd.println(WiFi.softAPIP().toString());
+  // M5.Lcd.println(WiFi.softAPIP().toString());
   M5.Lcd.println();
 
   M5.Lcd.println("=== Wifi client ===");

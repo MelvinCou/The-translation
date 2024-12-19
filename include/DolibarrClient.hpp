@@ -1,7 +1,7 @@
 #ifndef DOLIBARR_CLIENT_HPP_
 #define DOLIBARR_CLIENT_HPP_
 
-#include <HTTPClient.h>
+// #include <HTTPClient.h>
 
 enum class DolibarrClientStatus { CONFIGURING = 0, READY, SENDING, ERROR };
 
@@ -32,7 +32,7 @@ class DolibarrClient {
   DolibarrClientStatus getStatus() const;
 
  private:
-  HTTPClient client;
+  // HTTPClient client;
   DolibarrClientStatus status;
 
   String m_tagEndpoint;
