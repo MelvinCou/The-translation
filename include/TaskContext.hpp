@@ -8,7 +8,6 @@
 #include <ActiveModule.hpp>
 
 #include "OperationMode.hpp"
-#include "production/SharedValues.hpp"
 
 // forward declaration
 class Hardware;
@@ -25,7 +24,12 @@ class TaskContext {
   constexpr Hardware *getHardware() const { return m_hardware; }
 
   /// @brief Provides access to values that can be shared accross state machines.
-  SharedValues &getSharedValues() { return m_sharedValues; }
+  template <typename T>
+  constexpr T *getSharedValues() const {
+    return reinterpret_cast<T *>(m_sharedValues);
+  }
+
+  void setSharedValues(void *values) { m_sharedValues = values; }
 
   /// @brief Set shared values
   // void setSharedValues(void *sharedValues) { m_sharedValues = sharedValues; }
@@ -83,7 +87,7 @@ class TaskContext {
  private:
   Hardware *m_hardware;
   ActiveModule m_currentActiveModule;
-  SharedValues m_sharedValues;
+  void *m_sharedValues;
 
   // Sub-task management internal state
   bool m_allowSubTaskCreation;
