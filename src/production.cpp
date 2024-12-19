@@ -10,6 +10,7 @@
 #include "Hardware.hpp"
 #include "Logger.hpp"
 #include "TheTranslationConfig.hpp"
+#include "production/ProductionValues.hpp"
 #include "taskUtil.hpp"
 
 static void readButtons(TaskContext *ctx) {
@@ -36,16 +37,16 @@ static void readButtons(TaskContext *ctx) {
 }
 
 String tag = "";
+char *endptr;
+int base10tag;
 
 static void readTagsAndRunConveyor(TaskContext *ctx) {
   TagReader &tagReader = ctx->getHardware()->tagReader;
   Conveyor &conveyor = ctx->getHardware()->conveyor;
-  SharedValues &values = ctx->getSharedValues();
+  auto values = ctx->getSharedValues<ProductionValues>();
 
   do {
     if (tagReader.isNewTagPresent()) {
-      values.production.isNewTagPresent = false;
-
       unsigned char buffer[10];
       unsigned char size = tagReader.readTag(buffer);
       if (size > 0) {
@@ -55,8 +56,10 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
           sniprintf(two, sizeof(two), "%02x", buffer[i]);
           tag += two;
         }
-        memcpy(values.production.tag, tag.c_str(), tag.length());
-        values.production.isNewTagPresent = true;
+        taskENTER_CRITICAL(&values->subTaskLock);
+        base10tag = strtol(tag.c_str(), &endptr, 16);
+        values->tags.push(&base10tag);
+        taskEXIT_CRITICAL(&values->subTaskLock);
 
         LOG_INFO("[TAG] New Tag %s\n", tag.c_str());
       }
@@ -75,10 +78,10 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
 
 static void sortPackages(TaskContext *ctx) {
   Sorter &sorter = ctx->getHardware()->sorter;
-  SharedValues &values = ctx->getSharedValues();
+  auto values = ctx->getSharedValues<ProductionValues>();
 
   do {
-    switch (static_cast<SorterDirection>(values.production.targetWarehouse)) {
+    switch (static_cast<SorterDirection>(values->targetWarehouse)) {
       case SorterDirection::LEFT:
         sorter.move(SorterDirection::LEFT);
         break;
@@ -89,7 +92,7 @@ static void sortPackages(TaskContext *ctx) {
         sorter.move(SorterDirection::RIGHT);
         break;
       default:
-        LOG_WARN("[SORT.] Invalide direction: %u\n", values.production.targetWarehouse);
+        LOG_WARN("[SORT.] Invalide direction: %u\n", values->targetWarehouse);
         sorter.move(SorterDirection::RIGHT);
         break;
     }
@@ -99,7 +102,7 @@ static void sortPackages(TaskContext *ctx) {
 static void makeHttpRequests(TaskContext *ctx) {
   WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
   DolibarrClient &dolibarrClient = ctx->getHardware()->dolibarrClient;
-  SharedValues &values = ctx->getSharedValues();
+  auto values = ctx->getSharedValues<ProductionValues>();
 
   WiFiClass::mode(WIFI_STA);  // connect to access point
   WiFi.begin(webConfigurator.getApSsid(), webConfigurator.getApPassword());
@@ -114,23 +117,25 @@ static void makeHttpRequests(TaskContext *ctx) {
   }
   LOG_INFO("\n[HTTP] Connected!\n");
 
-  int product = 0, warehouse = 0;
-  values.production.dolibarrClientStatus =
+  int product = 0, warehouse = 0, tag = 0;
+  bool newTag = false;
+  values->dolibarrClientStatus =
       dolibarrClient.configure(webConfigurator.getApiUrl(), webConfigurator.getApiKey(), webConfigurator.getApiWarehouseError());
 
-  LOG_DEBUG("[HTTP] Dolibarr status : %u\n", values.production.dolibarrClientStatus);
+  LOG_DEBUG("[HTTP] Dolibarr status : %u\n", values->dolibarrClientStatus);
 
-  switch (values.production.dolibarrClientStatus) {
+  switch (values->dolibarrClientStatus) {
     case DolibarrClientStatus::READY:
       do {
-        if (values.production.isNewTagPresent) {
-          LOG_INFO("[TAG] New Tag makeHttpRequests %s\n", values.production.tag);
-          char *endptr;
-          values.production.dolibarrClientStatus = dolibarrClient.sendTag(strtol(values.production.tag, &endptr, 16), product, warehouse);
-          values.production.dolibarrClientStatus = dolibarrClient.sendStockMovement(warehouse, product, 1);
+        taskENTER_CRITICAL(&values->subTaskLock);
+        newTag = values->tags.pop(&tag);
+        taskEXIT_CRITICAL(&values->subTaskLock);
 
-          values.production.targetWarehouse = warehouse;
-          values.production.isNewTagPresent = false;
+        if (newTag) {
+          values->dolibarrClientStatus = dolibarrClient.sendTag(tag, product, warehouse);
+          values->dolibarrClientStatus = dolibarrClient.sendStockMovement(warehouse, product, 1);
+
+          values->targetWarehouse = warehouse;
         }
       } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
       break;
@@ -144,10 +149,7 @@ static void makeHttpRequests(TaskContext *ctx) {
 void startProductionMode(TaskContext *ctx) {
   LOG_INFO("Starting production mode\n");
 
-  SharedValues &values = ctx->getSharedValues();
-  memset(values.production.tag, 0, 32);
-  values.production.isNewTagPresent = false;
-  values.production.targetWarehouse = 1;
+  ctx->setSharedValues(new ProductionValues());
 
   spawnSubTask(readButtons, ctx);
   spawnSubTask(readTagsAndRunConveyor, ctx);

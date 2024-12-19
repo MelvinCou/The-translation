@@ -16,7 +16,8 @@ TaskContext::TaskContext(Hardware* hardware)
       m_switchModeSemaphoreBuffer{},
       m_switchModeSemaphore(xSemaphoreCreateBinaryStatic(&m_switchModeSemaphoreBuffer)),
       m_currentMode(OperationMode::UNDEFINED),
-      m_requestedMode(OperationMode::UNDEFINED) {
+      m_requestedMode(OperationMode::UNDEFINED),
+      m_sharedValues(nullptr) {
   for (uint32_t i = 0; i < MAX_SUB_TASKS; i++) {
     m_subTaskHandles[i] = nullptr;
   }
