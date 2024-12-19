@@ -78,7 +78,7 @@ static void sortPackages(TaskContext *ctx) {
   SharedValues &values = ctx->getSharedValues();
 
   do {
-    switch (static_cast<SorterDirection>(values.production.targetWarhouse)) {
+    switch (static_cast<SorterDirection>(values.production.targetWarehouse)) {
       case SorterDirection::LEFT:
         sorter.move(SorterDirection::LEFT);
         break;
@@ -89,7 +89,7 @@ static void sortPackages(TaskContext *ctx) {
         sorter.move(SorterDirection::RIGHT);
         break;
       default:
-        LOG_WARN("[SORT.] Invalide direction: %u\n", values.production.targetWarhouse);
+        LOG_WARN("[SORT.] Invalide direction: %u\n", values.production.targetWarehouse);
         sorter.move(SorterDirection::RIGHT);
         break;
     }
@@ -129,7 +129,7 @@ static void makeHttpRequests(TaskContext *ctx) {
           values.production.dolibarrClientStatus = dolibarrClient.sendTag(strtol(values.production.tag, &endptr, 16), product, warehouse);
           values.production.dolibarrClientStatus = dolibarrClient.sendStockMovement(warehouse, product, 1);
 
-          values.production.targetWarhouse = warehouse;
+          values.production.targetWarehouse = warehouse;
           values.production.isNewTagPresent = false;
         }
       } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
@@ -147,7 +147,7 @@ void startProductionMode(TaskContext *ctx) {
   SharedValues &values = ctx->getSharedValues();
   memset(values.production.tag, 0, 32);
   values.production.isNewTagPresent = false;
-  values.production.targetWarhouse = 1;
+  values.production.targetWarehouse = 1;
 
   spawnSubTask(readButtons, ctx);
   spawnSubTask(readTagsAndRunConveyor, ctx);
