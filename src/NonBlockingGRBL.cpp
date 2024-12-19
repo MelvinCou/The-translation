@@ -1,5 +1,3 @@
-#ifdef HARDWARE_GRBL
-
 #include "NonBlockingGRBL.hpp"
 
 #include "taskUtil.hpp"
@@ -139,5 +137,3 @@ void Module_GRBL::setMode(String mode) {
   this->sendByte('@');
   return this->readLine(line);
 }
-
-#endif  // defined(HARDWARE_GRBL)

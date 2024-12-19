@@ -1,10 +1,5 @@
-#include "TheTranslationConfig.hpp"
-
-#ifdef ENV_M5STACK
-#include <M5Stack.h>
-#endif  // defined(ENV_M5STACK)
-
 #include <HTTPClient.h>
+#include <M5Stack.h>
 #include <WiFi.h>
 #include <freertos/task.h>
 
@@ -14,6 +9,7 @@
 #include "Buttons.hpp"
 #include "Hardware.hpp"
 #include "Logger.hpp"
+#include "TheTranslationConfig.hpp"
 #include "taskUtil.hpp"
 
 static void readButtons(TaskContext *ctx) {
@@ -117,10 +113,8 @@ void startProductionMode(TaskContext *ctx) {
   spawnSubTask(readTagsAndRunConveyor, ctx);
   spawnSubTask(makeHttpRequests, ctx);
 
-#ifdef ENV_M5STACK
   M5.Lcd.clearDisplay();
   M5.Lcd.setCursor(0, 0);
   M5.Lcd.println("= Production Mode =");
   M5.Lcd.println("A: Start B: Mode C: Stop");
-#endif  // defined(ENV_M5STACK)
 }
