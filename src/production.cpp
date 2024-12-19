@@ -4,9 +4,11 @@
 #include <M5Stack.h>
 #endif  // defined(ENV_M5STACK)
 
+#ifndef ENV_SIMULATION
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <freertos/task.h>
+#endif  // !defined(ENV_SIMULATION)
 
 #include <OperationMode.hpp>
 #include <TaskContext.hpp>
@@ -81,6 +83,7 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
   conveyor.update();
 }
 
+#ifndef ENV_SIMULATION
 static void makeHttpRequests(TaskContext *ctx) {
   WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
   DolibarrClient &dolibarrClient = ctx->getHardware()->dolibarrClient;
@@ -110,12 +113,13 @@ static void makeHttpRequests(TaskContext *ctx) {
     dolibarrClient.sendStockMovement(warehouse, product, 1);
   } while (interruptibleTaskPauseMs(5000));
 }
+#endif  // !defined(ENV_SIMULATION)
 
 void startProductionMode(TaskContext *ctx) {
   LOG_INFO("Starting production mode\n");
   spawnSubTask(readButtons, ctx);
   spawnSubTask(readTagsAndRunConveyor, ctx);
-  spawnSubTask(makeHttpRequests, ctx);
+  // spawnSubTask(makeHttpRequests, ctx);
 
 #ifdef ENV_M5STACK
   M5.Lcd.clearDisplay();

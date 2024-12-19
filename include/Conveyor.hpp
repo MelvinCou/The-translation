@@ -3,6 +3,8 @@
 
 #ifdef HARDWARE_GRBL
 #include "NonBlockingGRBL.hpp"
+#else
+#include <Arduino.h>
 #endif  // defined(HARDWARE_GRBL)
 
 enum class ConveyorStatus {

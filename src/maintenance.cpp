@@ -196,49 +196,49 @@ static void readAndPrintTags(TaskContext *ctx) {
   } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
 }
 
-static void makeHttpRequests(TaskContext *ctx) {
-  Buttons &buttons = ctx->getHardware()->buttons;
-  WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
-  DolibarrClient &dolibarrClient = ctx->getHardware()->dolibarrClient;
-  do {
-    if (ctx->getCurrentMaintenanceModule() == ActiveModule::DOLIBARR) {
-      buttons.update();
-      if (buttons.BtnA->wasPressed()) {
-        LOG_INFO("\n[HTTP] Starting!\n");
-        WiFiClass::mode(WIFI_STA);  // connect to access point
-        WiFi.begin(webConfigurator.getApSsid(), webConfigurator.getApPassword());
-        M5.Lcd.println("Connecting to WIFI");
-
-        while (WiFiClass::status() != WL_CONNECTED) {
-          if (!interruptibleTaskPauseMs(500)) {
-            LOG_DEBUG("[HTTP] Connection cancelled\n");
-            return;
-          }
-          M5.Lcd.print(".");
-        }
-        M5.Lcd.println("Connection successful");
-
-      } else if (buttons.BtnC->wasPressed()) {
-        M5.Lcd.println("SEND STATUS REQUEST");
-        DolibarrClientStatus dolibarrStatus =
-            dolibarrClient.configure(webConfigurator.getApiUrl(), webConfigurator.getApiKey(), webConfigurator.getApiWarehouseError());
-        LOG_DEBUG("[HTTP] Dolibarr status : %u\n", dolibarrStatus);
-        if (dolibarrStatus == DolibarrClientStatus::READY) {
-          M5.Lcd.println("Successful Request to Dolibarr - Status READY");
-        } else {
-          M5.Lcd.println("Failed Request to Dolibarr - Status ERROR");
-        }
-      }
-
-      if (buttons.BtnB->pressedFor(HOLD_BUTTON_TIME)) {
-        LOG_DEBUG("[MAINT.] Exit module %s\n", ACTIVE_MODULES[1]);
-        ctx->setMaintenanceActiveModule(ActiveModule::NONE);
-        clearScreen();
-        showMenu();
-      }
-    }
-  } while (interruptibleTaskPauseMs(BUTTONS_READ_INTERVAL));
-}
+// static void makeHttpRequests(TaskContext *ctx) {
+//   Buttons &buttons = ctx->getHardware()->buttons;
+//   WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
+//   DolibarrClient &dolibarrClient = ctx->getHardware()->dolibarrClient;
+//   do {
+//     if (ctx->getCurrentMaintenanceModule() == ActiveModule::DOLIBARR) {
+//       buttons.update();
+//       if (buttons.BtnA->wasPressed()) {
+//         LOG_INFO("\n[HTTP] Starting!\n");
+//         WiFiClass::mode(WIFI_STA);  // connect to access point
+//         WiFi.begin(webConfigurator.getApSsid(), webConfigurator.getApPassword());
+//         M5.Lcd.println("Connecting to WIFI");
+//
+//         while (WiFiClass::status() != WL_CONNECTED) {
+//           if (!interruptibleTaskPauseMs(500)) {
+//             LOG_DEBUG("[HTTP] Connection cancelled\n");
+//             return;
+//           }
+//           M5.Lcd.print(".");
+//         }
+//         M5.Lcd.println("Connection successful");
+//
+//       } else if (buttons.BtnC->wasPressed()) {
+//         M5.Lcd.println("SEND STATUS REQUEST");
+//         DolibarrClientStatus dolibarrStatus =
+//             dolibarrClient.configure(webConfigurator.getApiUrl(), webConfigurator.getApiKey(), webConfigurator.getApiWarehouseError());
+//         LOG_DEBUG("[HTTP] Dolibarr status : %u\n", dolibarrStatus);
+//         if (dolibarrStatus == DolibarrClientStatus::READY) {
+//           M5.Lcd.println("Successful Request to Dolibarr - Status READY");
+//         } else {
+//           M5.Lcd.println("Failed Request to Dolibarr - Status ERROR");
+//         }
+//       }
+//
+//       if (buttons.BtnB->pressedFor(HOLD_BUTTON_TIME)) {
+//         LOG_DEBUG("[MAINT.] Exit module %s\n", ACTIVE_MODULES[1]);
+//         ctx->setMaintenanceActiveModule(ActiveModule::NONE);
+//         clearScreen();
+//         showMenu();
+//       }
+//     }
+//   } while (interruptibleTaskPauseMs(BUTTONS_READ_INTERVAL));
+// }
 #endif
 void startMaintenanceMode(TaskContext *ctx) {
   LOG_INFO("Starting maintenance mode\n");
@@ -252,6 +252,6 @@ void startMaintenanceMode(TaskContext *ctx) {
   spawnSubTask(runConveyor, ctx);
   spawnSubTask(startSorter, ctx);
   spawnSubTask(readAndPrintTags, ctx);
-  spawnSubTask(makeHttpRequests, ctx);
+  // spawnSubTask(makeHttpRequests, ctx);
 #endif
 }
