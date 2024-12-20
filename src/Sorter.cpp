@@ -9,7 +9,7 @@ GoPlus2 goPlus;
 void Sorter::begin() {
   goPlus.begin();
   goPlus.Servo_write_plusewidth(SORTER_SERVO_NUMBER, SORTER_SERVO_PULSE_WIDTH);
-  goPlus.Servo_write_angle(SORTER_SERVO_NUMBER, SORTER_SERVO_MIDDLE_ANGLE);
+  goPlus.Servo_write_angle(SORTER_SERVO_NUMBER, SORTER_SERVO_RIGHT_ANGLE);
 }
 
 void Sorter::move(SorterDirection direction) {
