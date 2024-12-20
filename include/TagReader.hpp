@@ -3,7 +3,7 @@
 
 #include <MFRC522_I2C.h>
 
-enum TagReaderStatus { CONFIGURING, READY, ERROR };
+enum class TagReaderStatus { CONFIGURING, READY, ERROR };
 
 class TagReader {
  public:

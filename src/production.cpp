@@ -36,36 +36,36 @@ static void readButtons(TaskContext *ctx) {
   LOG_DEBUG("[BTN] Stopped reading buttons\n");
 }
 
-String tag = "";
-char *endptr;
-int base10tag;
-
 static void readTagsAndRunConveyor(TaskContext *ctx) {
   TagReader &tagReader = ctx->getHardware()->tagReader;
   Conveyor &conveyor = ctx->getHardware()->conveyor;
   auto values = ctx->getSharedValues<ProductionValues>();
 
+  String tag = "";
+  char *endptr;
+  int base10tag;
+
   do {
     switch (tagReader.getStatus()) {
       case TagReaderStatus::READY:
-    if (tagReader.isNewTagPresent()) {
-      unsigned char buffer[10];
-      unsigned char size = tagReader.readTag(buffer);
-      if (size > 0) {
-        tag = "";
-        for (unsigned char i = 0; i < size; i++) {
-          char two[3];
-          sniprintf(two, sizeof(two), "%02x", buffer[i]);
-          tag += two;
-        }
-        taskENTER_CRITICAL(&values->subTaskLock);
-        base10tag = strtol(tag.c_str(), &endptr, 16);
-        values->tags.push(&base10tag);
-        taskEXIT_CRITICAL(&values->subTaskLock);
+        if (tagReader.isNewTagPresent()) {
+          unsigned char buffer[10];
+          unsigned char size = tagReader.readTag(buffer);
+          if (size > 0) {
+            tag = "";
+            for (unsigned char i = 0; i < size; i++) {
+              char two[3];
+              sniprintf(two, sizeof(two), "%02x", buffer[i]);
+              tag += two;
+            }
+            taskENTER_CRITICAL(&values->subTaskLock);
+            base10tag = strtol(tag.c_str(), &endptr, 16);
+            values->tags.push(&base10tag);
+            taskEXIT_CRITICAL(&values->subTaskLock);
 
-        LOG_INFO("[TAG] New Tag %s\n", tag.c_str());
-      }
-    }
+            LOG_INFO("[TAG] New Tag %s\n", tag.c_str());
+          }
+        }
         break;
       default:
         break;
@@ -99,19 +99,28 @@ static void sortPackages(TaskContext *ctx) {
   auto values = ctx->getSharedValues<ProductionValues>();
 
   do {
-    switch (static_cast<SorterDirection>(values->targetWarehouse)) {
-      case SorterDirection::LEFT:
-        sorter.move(SorterDirection::LEFT);
+    switch (values->dolibarrClientStatus) {
+      case DolibarrClientStatus::READY:
+      case DolibarrClientStatus::ERROR:
+        switch (static_cast<SorterDirection>(values->targetWarehouse)) {
+          case SorterDirection::LEFT:
+            sorter.move(SorterDirection::LEFT);
+            break;
+          case SorterDirection::MIDDLE:
+            sorter.move(SorterDirection::MIDDLE);
+            break;
+          case SorterDirection::RIGHT:
+            sorter.move(SorterDirection::RIGHT);
+            break;
+          default:
+            LOG_WARN("[SORT.] Invalide direction: %u\n", values->targetWarehouse);
+            sorter.move(SorterDirection::RIGHT);
+            break;
+        }
         break;
-      case SorterDirection::MIDDLE:
-        sorter.move(SorterDirection::MIDDLE);
-        break;
-      case SorterDirection::RIGHT:
-        sorter.move(SorterDirection::RIGHT);
-        break;
+      case DolibarrClientStatus::CONFIGURING:
+      case DolibarrClientStatus::SENDING:
       default:
-        LOG_WARN("[SORT.] Invalide direction: %u\n", values->targetWarehouse);
-        sorter.move(SorterDirection::RIGHT);
         break;
     }
   } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
@@ -157,7 +166,6 @@ static void makeHttpRequests(TaskContext *ctx) {
         }
       } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
       break;
-
     default:
       LOG_ERROR("[HTTP] Dolibarr client configuration failed. Aborting.\n");
       break;

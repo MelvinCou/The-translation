@@ -13,7 +13,11 @@ struct ProductionValues {
   DolibarrClientStatus dolibarrClientStatus;
   int targetWarehouse;
 
-  ProductionValues() : tags(sizeof(int), 3, cppQueueType::FIFO), targetWarehouse(3), subTaskLock(portMUX_INITIALIZER_UNLOCKED) {}
+  ProductionValues()
+      : subTaskLock(portMUX_INITIALIZER_UNLOCKED),
+        tags(sizeof(int), 3, cppQueueType::FIFO),
+        dolibarrClientStatus(DolibarrClientStatus::CONFIGURING),
+        targetWarehouse(3) {}
   ~ProductionValues() = default;
 };
 

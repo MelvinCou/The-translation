@@ -29,10 +29,8 @@ class TaskContext {
     return reinterpret_cast<T *>(m_sharedValues);
   }
 
-  void setSharedValues(void *values) { m_sharedValues = values; }
-
   /// @brief Set shared values
-  // void setSharedValues(void *sharedValues) { m_sharedValues = sharedValues; }
+  void setSharedValues(void *values) { m_sharedValues = values; }
 
   /**
    * @defgroup TextContextSubTaskAPI Sub-task management API
