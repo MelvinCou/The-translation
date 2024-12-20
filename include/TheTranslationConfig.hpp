@@ -31,7 +31,8 @@
 #pragma endregion "M5 LCD screen configuration"
 
 #pragma region "tag reader configuration"
-#define TAG_READER_INTERVAL 100  //< Read interval in milliseconds
+#define TAG_READER_INTERVAL 100             //< Read interval in milliseconds
+#define TAG_READER_TEST_INTERVAL 1000 * 60  //< Test interval in milliseconds
 #pragma endregion "tag reader configuration"
 
 #pragma region "soft access point configuration"
