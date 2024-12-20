@@ -46,6 +46,8 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
   auto values = ctx->getSharedValues<ProductionValues>();
 
   do {
+    switch (tagReader.getStatus()) {
+      case TagReaderStatus::READY:
     if (tagReader.isNewTagPresent()) {
       unsigned char buffer[10];
       unsigned char size = tagReader.readTag(buffer);
@@ -64,6 +66,11 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
         LOG_INFO("[TAG] New Tag %s\n", tag.c_str());
       }
     }
+        break;
+      default:
+        break;
+    }
+
     if (conveyor.getCurrentStatus() != ConveyorStatus::CANCELLED) {
       conveyor.update();
     }
@@ -74,6 +81,17 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
 
   conveyor.stop();
   conveyor.update();
+}
+
+static void testTagReader(TaskContext *ctx) {
+  TagReader &tagReader = ctx->getHardware()->tagReader;
+
+  do {
+    tagReader.selfTest();
+    if (tagReader.getStatus() == TagReaderStatus::ERROR) {
+      LOG_ERROR("[TAG] Self test failed\n");
+    }
+  } while (interruptibleTaskPauseMs(TAG_READER_TEST_INTERVAL));
 }
 
 static void sortPackages(TaskContext *ctx) {
@@ -153,6 +171,7 @@ void startProductionMode(TaskContext *ctx) {
 
   spawnSubTask(readButtons, ctx);
   spawnSubTask(readTagsAndRunConveyor, ctx);
+  spawnSubTask(testTagReader, ctx);
   spawnSubTask(makeHttpRequests, ctx);
   spawnSubTask(sortPackages, ctx);
 
