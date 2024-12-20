@@ -3,6 +3,8 @@
 
 #include <MFRC522_I2C.h>
 
+enum TagReaderStatus { CONFIGURING, READY, ERROR };
+
 class TagReader {
  public:
   TagReader() = default;
@@ -19,8 +21,13 @@ class TagReader {
   /// @return The number of bytes copied to the buffer, or 0 if no tag was read.
   unsigned char readTag(unsigned char *buffer);
 
+  void selfTest();
+
+  TagReaderStatus getStatus();
+
  private:
   MFRC522_I2C *m_mfrc522;
+  TagReaderStatus m_status;
 };
 
 #endif  // !defined(TAG_READER_HPP)
