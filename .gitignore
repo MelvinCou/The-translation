@@ -6,3 +6,4 @@
 .cache/
 cmake-build-esp-idf-debug/
 build/
+sdkconfig.m5stack-simulated
