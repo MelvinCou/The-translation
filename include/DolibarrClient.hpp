@@ -1,7 +1,11 @@
 #ifndef DOLIBARR_CLIENT_HPP_
 #define DOLIBARR_CLIENT_HPP_
 
-// #include <HTTPClient.h>
+#ifndef ENV_SIMULATION
+#include <HTTPClient.h>
+#else
+#include <Arduino.h>
+#endif  // !defined(ENV_SIMULATION)
 
 enum class DolibarrClientStatus { CONFIGURING = 0, READY, SENDING, ERROR };
 
@@ -32,7 +36,9 @@ class DolibarrClient {
   DolibarrClientStatus getStatus() const;
 
  private:
-  // HTTPClient client;
+#ifndef ENV_SIMULATION
+  HTTPClient client;
+#endif  // !defined(ENV_SIMULATION)
   DolibarrClientStatus status;
 
   String m_tagEndpoint;
