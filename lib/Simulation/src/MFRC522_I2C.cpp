@@ -1,9 +1,16 @@
 #include "simulation/MFRC522_I2C.hpp"
 
 MFRC522_I2C::MFRC522_I2C([[maybe_unused]] byte chipAddress, [[maybe_unused]] byte resetPowerDownPin,
-                         [[maybe_unused]] TwoWire *TwoWireInstance)
+                         [[maybe_unused]] TwoWire* TwoWireInstance)
     : uid() {
   // TODO: stub
+}
+
+byte MFRC522_I2C::PCD_ReadRegister(byte reg) {
+  if (reg == VersionReg) {
+    return 0x88;
+  }
+  return STATUS_ERROR;
 }
 
 void MFRC522_I2C::PCD_Init() {
