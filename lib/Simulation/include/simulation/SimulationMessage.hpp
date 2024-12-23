@@ -19,10 +19,9 @@ struct __attribute__((packed)) C2SMessage {
     } setButton;
   };
 
-  size_t getLength() const {
+  [[nodiscard]] size_t getLength() const {
     switch (opcode) {
       case C2SOpcode::PING:
-        return 1;
       case C2SOpcode::RESET:
         return 1;
       case C2SOpcode::SET_BUTTON:
@@ -62,7 +61,7 @@ struct __attribute__((packed)) S2CMessage {
     uint32_t conveyorSetSpeed;
   };
 
-  size_t getLength() const {
+  [[nodiscard]] size_t getLength() const {
     switch (opcode) {
       case S2COpcode::PONG:
       case S2COpcode::RESET:

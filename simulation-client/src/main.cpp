@@ -6,17 +6,6 @@
 #include <string>
 #include <thread>
 
-struct Status {
-  bool btnADown = false;
-  bool btnBDown = false;
-  bool btnCDown = false;
-  bool btnRDown = false;
-  int cursorX = 0;
-  int cursorY = 0;
-  int fontSize = 2;
-  uint32_t conveyorSpeed = 0;
-};
-
 #define M5_BG \
   CLITERAL(Color) { 34, 34, 34, 255 }
 #define M5_FRAME \
@@ -24,44 +13,95 @@ struct Status {
 #define M5_BUTTON \
   CLITERAL(Color) { 194, 191, 203, 255 }
 
-constexpr int screenWidth = 900;
-constexpr int screenHeight = 450;
-constexpr int frameX = (screenWidth - 370) / 2;
-constexpr int frameY = (screenHeight - 370) / 2;
-constexpr Rectangle btnARect{screenWidth / 2.f - 80, static_cast<float>(screenHeight) - 92, 40, 40};
-constexpr Rectangle btnBRect{screenWidth / 2.f - 20, static_cast<float>(screenHeight) - 92, 40, 40};
-constexpr Rectangle btnCRect{screenWidth / 2.f + 40, static_cast<float>(screenHeight) - 92, 40, 40};
-constexpr Rectangle btnRRect{frameX - 60, frameY, 40, 40};
+constexpr int INITIAL_SCREEN_WIDTH = 900;
+constexpr int INITIAL_SCREEN_HEIGHT = 900;
+constexpr float M5_BASE_SCREEN_WIDTH = 320;
+constexpr float M5_BASE_SCREEN_HEIGHT = 240;
 
-static void resetStatus(Status &status, Image *screen) {
-  status = Status{};
+struct Dimensions {
+  float scale;
+  float screenWidth;
+  float screenHeight;
+  Rectangle m5Screen;
+  Rectangle m5Frame;
+  Rectangle m5Bezel;
+  Rectangle btnBRect;
+  Rectangle btnARect;
+  Rectangle btnCRect;
+  Rectangle btnRRect;
+
+  explicit constexpr Dimensions(float sw, float sh)
+      : scale(sw / static_cast<float>(INITIAL_SCREEN_WIDTH)),
+        screenWidth(sw),
+        screenHeight(sh),
+        m5Screen{(screenWidth - M5_BASE_SCREEN_WIDTH * scale) / 2.f, (screenHeight - M5_BASE_SCREEN_HEIGHT * scale) / 2.f,
+                 M5_BASE_SCREEN_WIDTH * scale, M5_BASE_SCREEN_HEIGHT * scale},
+        m5Frame{(screenWidth - M5_BASE_SCREEN_WIDTH * scale - 50 * scale) / 2.f,
+                (screenHeight - M5_BASE_SCREEN_WIDTH * scale - 50 * scale) / 2.f, m5Screen.width + 50 * scale, m5Screen.width + 50 * scale},
+        m5Bezel{m5Frame.x + (m5Frame.width - m5Screen.width - 40 * scale) / 2,
+                m5Frame.y + (m5Frame.height - m5Screen.width - 40 * scale) / 2, m5Screen.width + 40 * scale, m5Screen.width + 40 * scale},
+        btnBRect{m5Frame.x + (m5Frame.width - 40.f * scale) / 2, m5Frame.y + m5Frame.height - 52 * scale, 40 * scale, 40 * scale},
+        btnARect{btnBRect.x - 60 * scale, btnBRect.y, btnBRect.width, btnBRect.height},
+        btnCRect{btnBRect.x + 60 * scale, btnBRect.y, btnBRect.width, btnBRect.height},
+        btnRRect{m5Frame.x - 60 * scale, m5Frame.y, btnBRect.width, btnBRect.height} {}
+};
+
+struct Status {
+  bool btnADown;
+  bool btnBDown;
+  bool btnCDown;
+  bool btnRDown;
+  int cursorX;
+  int cursorY;
+  float fontSize;
+  uint32_t conveyorSpeed;
+
+  explicit constexpr Status(Dimensions const &d)
+      : btnADown(false),
+        btnBDown(false),
+        btnCDown(false),
+        btnRDown(false),
+        cursorX(0),
+        cursorY(0),
+        fontSize(2.f * d.scale),
+        conveyorSpeed(0) {}
+};
+
+static void resetStatus(Dimensions const &d, Status &status, Image *screen) {
+  status = Status(d);
   ImageClearBackground(screen, M5_BG);
   printf("Reset state!\n");
 }
 
-static void writeToLcd(Status &status, Image *screen, char const *buf, size_t len) {
+static void writeToLcd(Dimensions const &d, Status &status, Image *screen, char const *buf, size_t len) {
   std::string text(buf, len);
 
   for (size_t i = 0; i < len; ++i) {
     char txtBuf[2] = {buf[i], '\0'};
 
-    ImageDrawText(screen, txtBuf, status.cursorX, status.cursorY, status.fontSize * 10, WHITE);
     if (buf[i] == '\n') {
       status.cursorX = 0;
       status.cursorY += status.fontSize * 10;
     } else {
-      status.cursorX += MeasureText(txtBuf, status.fontSize * 10) + status.fontSize;
+      int textWidth = MeasureText(txtBuf, status.fontSize * 10) + status.fontSize;
+      if (status.cursorX + textWidth > d.m5Screen.width) {
+        status.cursorX = 0;
+        status.cursorY += status.fontSize * 10;
+      } else {
+        ImageDrawText(screen, txtBuf, status.cursorX, status.cursorY, status.fontSize * 10, WHITE);
+        status.cursorX += textWidth;
+      }
     }
   }
 }
 
-static void handleEvents(SimulationClient &client, Status &status, Image *screen) {
+static void handleEvents(SimulationClient &client, Dimensions const &d, Status &status, Image *screen) {
   if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
     Vector2 mousePos = GetMousePosition();
-    status.btnADown = CheckCollisionPointRec(mousePos, btnARect);
-    status.btnBDown = CheckCollisionPointRec(mousePos, btnBRect);
-    status.btnCDown = CheckCollisionPointRec(mousePos, btnCRect);
-    status.btnRDown = CheckCollisionPointRec(mousePos, btnRRect);
+    status.btnADown = CheckCollisionPointRec(mousePos, d.btnARect);
+    status.btnBDown = CheckCollisionPointRec(mousePos, d.btnBRect);
+    status.btnCDown = CheckCollisionPointRec(mousePos, d.btnCRect);
+    status.btnRDown = CheckCollisionPointRec(mousePos, d.btnRRect);
   } else {
     status.btnADown = false;
     status.btnBDown = false;
@@ -76,7 +116,7 @@ static void handleEvents(SimulationClient &client, Status &status, Image *screen
         case S2COpcode::PONG:
           break;
         case S2COpcode::RESET:
-          resetStatus(status, screen);
+          resetStatus(d, status, screen);
           break;
         case S2COpcode::LCD_CLEAR:
           ImageClearBackground(screen, M5_BG);
@@ -86,10 +126,10 @@ static void handleEvents(SimulationClient &client, Status &status, Image *screen
           status.cursorY = msg.lcdSetCursor.y;
           break;
         case S2COpcode::LCD_SET_TEXT_SIZE:
-          status.fontSize = msg.lcdSetTextSize.size;
+          status.fontSize = msg.lcdSetTextSize.size * d.scale;
           break;
         case S2COpcode::LCD_WRITE:
-          writeToLcd(status, screen, reinterpret_cast<char const *>(msg.lcdWrite.buf), msg.lcdWrite.len);
+          writeToLcd(d, status, screen, reinterpret_cast<char const *>(msg.lcdWrite.buf), msg.lcdWrite.len);
           break;
         case S2COpcode::CONVEYOR_SET_SPEED:
           status.conveyorSpeed = msg.conveyorSetSpeed;
@@ -126,49 +166,60 @@ static void handleChange(SimulationClient &client, Status const &next, Status co
   fflush(stdout);
 }
 
-static void drawButtons(Status const &status) {
+static void drawButtons(Dimensions const &d, Status const &status) {
   if (status.btnADown) {
-    DrawRectangleRec(btnARect, RED);
+    DrawRectangleRec(d.btnARect, RED);
   }
   if (status.btnBDown) {
-    DrawRectangleRec(btnBRect, RED);
+    DrawRectangleRec(d.btnBRect, RED);
   }
   if (status.btnCDown) {
-    DrawRectangleRec(btnCRect, RED);
+    DrawRectangleRec(d.btnCRect, RED);
   }
   if (status.btnRDown) {
-    DrawRectangleRec(btnRRect, RED);
+    DrawRectangleRec(d.btnRRect, RED);
   }
 
-  DrawRectangleLinesEx(btnARect, 4, M5_BUTTON);
-  DrawRectangleLinesEx(btnBRect, 4, M5_BUTTON);
-  DrawRectangleLinesEx(btnCRect, 4, M5_BUTTON);
-  DrawRectangleLinesEx(btnRRect, 4, RED);
+  DrawRectangleLinesEx(d.btnARect, 4, M5_BUTTON);
+  DrawRectangleLinesEx(d.btnBRect, 4, M5_BUTTON);
+  DrawRectangleLinesEx(d.btnCRect, 4, M5_BUTTON);
+  DrawRectangleLinesEx(d.btnRRect, 4, RED);
 
-  DrawText("A", screenWidth / 2 + 13 - 80, screenHeight - 82, 20, M5_BUTTON);
-  DrawText("B", screenWidth / 2 + 13 - 20, screenHeight - 82, 20, M5_BUTTON);
-  DrawText("C", screenWidth / 2 + 13 + 40, screenHeight - 82, 20, M5_BUTTON);
-  DrawText("R", btnRRect.x + 13, btnRRect.y + 10, 20, status.btnRDown ? WHITE : RED);
+  DrawText("A", d.btnARect.x + 13 * d.scale, d.btnARect.y + 10 * d.scale, 20 * d.scale, M5_BUTTON);
+  DrawText("B", d.btnBRect.x + 13 * d.scale, d.btnBRect.y + 10 * d.scale, 20 * d.scale, M5_BUTTON);
+  DrawText("C", d.btnCRect.x + 13 * d.scale, d.btnCRect.y + 10 * d.scale, 20 * d.scale, M5_BUTTON);
+  DrawText("R", d.btnRRect.x + 13 * d.scale, d.btnRRect.y + 10 * d.scale, 20 * d.scale, status.btnRDown ? WHITE : RED);
 }
 
 static void runClient(std::shared_ptr<SimulationClient> const &client) { client->run(); }
 
 int main() {
   SetTraceLogLevel(LOG_NONE);
-  InitWindow(screenWidth, screenHeight, "TheTranslation™ Simulator");
+  InitWindow(INITIAL_SCREEN_WIDTH, INITIAL_SCREEN_HEIGHT, "TheTranslation™ Simulator");
+  SetWindowState(FLAG_WINDOW_RESIZABLE);
 
   SetTargetFPS(60);  // Set our game to run at 60 frames-per-second
 
-  Status status;
-  Image screen = GenImageColor(320, 240, M5_BG);
+  Dimensions d(GetScreenWidth(), GetScreenHeight());
+  Status status(d);
+  Image screen = GenImageColor(d.m5Screen.width, d.m5Screen.height, M5_BG);
 
   auto stopToken = std::make_shared<std::atomic<bool>>(false);
   auto client = std::make_shared<SimulationClient>(stopToken);
   auto clientThread = std::thread(runClient, client);
 
   while (!WindowShouldClose()) {
+    if (IsWindowResized()) {
+      float oldScale = d.scale;
+      int sw = GetScreenWidth();
+      int sh = GetScreenHeight();
+      d = Dimensions(sw, sh);
+      ImageResize(&screen, d.m5Screen.width, d.m5Screen.height);
+      status.fontSize *= d.scale / oldScale;
+    }
+
     Status newStatus = status;
-    handleEvents(*client, newStatus, &screen);
+    handleEvents(*client, d, newStatus, &screen);
     handleChange(*client, newStatus, status);
     status = newStatus;
 
@@ -181,25 +232,25 @@ int main() {
     DrawText(fps.c_str(), 10, 10, 20, DARKGREEN);
 
     // M5 Frame
-    DrawRectangle(frameX, frameY, 370, 370, M5_FRAME);
+    DrawRectangleRec(d.m5Frame, M5_FRAME);
 
     // M5 Bezel
-    DrawRectangle((screenWidth - 360) / 2, (screenHeight - 360) / 2, 360, 360, BLACK);
+    DrawRectangleRec(d.m5Bezel, BLACK);
 
     // M5 Screen
-    DrawTexture(screenTexture, (screenWidth - 320) / 2, (screenHeight - 240) / 2, WHITE);
+    DrawTexture(screenTexture, d.m5Screen.x, d.m5Screen.y, WHITE);
 
     // Connection status
     bool isConnecting = client->getState() == SimulationClient::State::CONNECTING;
     char const *stateStr = isConnecting ? "Connecting..." : "Connected";
-    DrawText(stateStr, screenWidth - MeasureText(stateStr, 20) - 10, 10, 20, DARKGREEN);
-    DrawCircle(frameX + 20, frameY + 20, 7, isConnecting ? RED : GREEN);
+    DrawText(stateStr, d.screenWidth - MeasureText(stateStr, 20) - 10, 10, 20, DARKGREEN);
+    DrawCircle(d.m5Frame.x + 20.f * d.scale, d.m5Frame.y + 20.f * d.scale, 7.f * d.scale, isConnecting ? RED : GREEN);
 
     // Conveyor speed
     std::string conveyorSpeed = "Conveyor speed: " + std::to_string(status.conveyorSpeed);
-    DrawText(conveyorSpeed.c_str(), screenWidth - MeasureText(conveyorSpeed.c_str(), 20) - 10, screenHeight - 30, 20, DARKGREEN);
+    DrawText(conveyorSpeed.c_str(), d.screenWidth - MeasureText(conveyorSpeed.c_str(), 20) - 10, d.screenHeight - 30, 20, DARKGREEN);
 
-    drawButtons(status);
+    drawButtons(d, status);
     EndDrawing();
 
     UnloadTexture(screenTexture);

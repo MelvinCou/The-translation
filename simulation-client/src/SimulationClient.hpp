@@ -17,7 +17,7 @@ class SimulationClient {
     READING,
     PROCESSING,
   };
-  SimulationClient(std::shared_ptr<std::atomic<bool>> const &stopToken);
+  explicit SimulationClient(std::shared_ptr<std::atomic<bool>> const &stopToken);
   void pushToServer(C2SMessage &&msg);
   bool popFromServer(std::vector<S2CMessage> &popped);
   State getState() const;
