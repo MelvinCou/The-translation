@@ -16,8 +16,7 @@ class Print {
   virtual size_t write(uint8_t) = 0;
   virtual size_t write(const uint8_t *buffer, size_t size);
   virtual int availableForWrite() { return 0; }
-  virtual void flush() { /* Empty implementation for backward compatibility */
-  }
+  virtual void flush() { /* Empty implementation for backward compatibility */ }
 
   size_t print(const char[]);
   size_t print(unsigned char, int = DEC);

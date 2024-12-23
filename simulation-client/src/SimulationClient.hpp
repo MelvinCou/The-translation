@@ -1,0 +1,53 @@
+#ifndef SIMULATION_CLIENT_HPP
+#define SIMULATION_CLIENT_HPP
+
+#include <atomic>
+#include <memory>
+#include <mutex>
+#include <queue>
+
+#include "SimulationMessage.hpp"
+
+class SimulationClient {
+ public:
+  enum class State {
+    CONNECTING,
+    WAITING_FOR_IO,
+    WRITING,
+    READING,
+    PROCESSING,
+  };
+  SimulationClient(std::shared_ptr<std::atomic<bool>> const &stopToken);
+  void pushToServer(C2SMessage &&msg);
+  bool popFromServer(std::vector<S2CMessage> &popped);
+  State getState() const;
+
+  void run();
+
+
+ private:
+  std::shared_ptr<std::atomic<bool>> m_stopToken;
+  
+  std::atomic<State> m_state;
+  int m_sockFd;
+  std::vector<uint8_t> m_buf;
+
+  std::mutex m_c2sQueueLock;
+  std::atomic<bool> m_hasC2SQueuedMessages;
+  std::queue<C2SMessage> m_c2sQueue;
+  
+  std::mutex m_s2cQueueLock;
+  std::atomic<bool> m_hasS2CQueuedMessages;
+  std::queue<S2CMessage> m_s2cQueue;
+
+  int step();
+  int transitionTo(State next);
+  
+  int doConnect();
+  int doWaitForIO();
+  int doWrite();
+  int doRead();
+  int doProcess();
+};
+
+#endif  // !defined(SIMULATION_CLIENT_HPP)

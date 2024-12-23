@@ -28,8 +28,8 @@ class Module_GRBL {
   [[nodiscard]] GRBLCancellable readStatus(String *line);
   void unLock();
   void sendGcode(char *c);
-  
-private:
+
+ private:
   int addr;
   String mode;
   [[nodiscard]] GRBLCancellable readLine(String *line);

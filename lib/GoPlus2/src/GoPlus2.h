@@ -36,41 +36,39 @@
 
 #define HUB_WIRE 0x60  // HUB DIGITAL_OUTPUT register
 
-#define HUB_READ_O_DIGITAL \
-    0x70  // HUB DIGITAL_INPUT2(the 'O' pin) register,pull_up
+#define HUB_READ_O_DIGITAL 0x70  // HUB DIGITAL_INPUT2(the 'O' pin) register,pull_up
 
 #define HUB1_R_O_ADDR 0x00
 #define HUB2_R_O_ADDR 0x01
 #define HUB3_R_O_ADDR 0x02
 
-#define HUB_IO_SET \
-    0x80  // HUB SET INPUT(1) OR OUTPUT(0) mode (OUTPUT by default)
+#define HUB_IO_SET 0x80  // HUB SET INPUT(1) OR OUTPUT(0) mode (OUTPUT by default)
 
 class GoPlus2 {
-   public:
-    GoPlus2();
-    void begin();
+ public:
+  GoPlus2();
+  void begin();
 
-    void Servo_write_angle(uint8_t number, uint8_t angle);
-    void Servo_write_plusewidth(uint8_t number, uint16_t width);
-    void Motor_write_speed(uint8_t number, int motor_speed);
-    uint16_t hub1_a_read_value(uint8_t reg);
-    uint16_t hub1_d_read_value(uint8_t reg);
-    uint16_t hub2_d_read_value(uint8_t reg);
-    uint16_t hub3_d_read_value(uint8_t reg);
-    uint16_t hub2_a_read_value(uint8_t reg);
-    uint16_t hub3_a_read_value(uint8_t reg);
-    void hub1_wire_value(uint8_t reg, uint8_t value);
-    void hub2_wire_value(uint8_t reg, uint8_t value);
-    void hub3_wire_value(uint8_t reg, uint8_t value);
+  void Servo_write_angle(uint8_t number, uint8_t angle);
+  void Servo_write_plusewidth(uint8_t number, uint16_t width);
+  void Motor_write_speed(uint8_t number, int motor_speed);
+  uint16_t hub1_a_read_value(uint8_t reg);
+  uint16_t hub1_d_read_value(uint8_t reg);
+  uint16_t hub2_d_read_value(uint8_t reg);
+  uint16_t hub3_d_read_value(uint8_t reg);
+  uint16_t hub2_a_read_value(uint8_t reg);
+  uint16_t hub3_a_read_value(uint8_t reg);
+  void hub1_wire_value(uint8_t reg, uint8_t value);
+  void hub2_wire_value(uint8_t reg, uint8_t value);
+  void hub3_wire_value(uint8_t reg, uint8_t value);
 
-    void hub1_set_io(uint8_t reg, uint8_t value);
-    void hub2_set_io(uint8_t reg, uint8_t value);
-    void hub3_set_io(uint8_t reg, uint8_t value);
+  void hub1_set_io(uint8_t reg, uint8_t value);
+  void hub2_set_io(uint8_t reg, uint8_t value);
+  void hub3_set_io(uint8_t reg, uint8_t value);
 
-    uint8_t hub1_d_o_read_value(uint8_t reg);
-    uint8_t hub2_d_o_read_value(uint8_t reg);
-    uint8_t hub3_d_o_read_value(uint8_t reg);
+  uint8_t hub1_d_o_read_value(uint8_t reg);
+  uint8_t hub2_d_o_read_value(uint8_t reg);
+  uint8_t hub3_d_o_read_value(uint8_t reg);
 };
 
 #endif

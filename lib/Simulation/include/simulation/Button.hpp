@@ -11,7 +11,7 @@ class Button {
   Button(int id, uint8_t invert, uint32_t dbTime);
 
   void begin();
-  
+
   uint8_t read();
   uint8_t isPressed();
   uint8_t isReleased();
@@ -28,7 +28,7 @@ class Button {
   int m_id;
   uint8_t m_puEnable;        // internal pullup resistor enabled
   uint8_t m_invert;          // if 0, interpret high state as pressed, else interpret
-                            // low state as pressed
+                             // low state as pressed
   uint8_t m_state;           // current button state
   uint8_t m_lastState;       // previous button state
   uint8_t m_changed;         // state changed since last read
