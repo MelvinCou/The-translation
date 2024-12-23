@@ -16,5 +16,5 @@ jobs:
           sudo apt-get install --no-install-recommends -qqy clang-format
       - name: Check actual code formatting
         run: |
-          clang-format -i src/*.cpp include/*.hpp
+          git ls-files | grep -e '\.cpp$' -e '\.hpp$' -e '\.c$' -e '\.h$' | xargs clang-format -i
           git diff --exit-code

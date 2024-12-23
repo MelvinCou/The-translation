@@ -8,7 +8,7 @@ class M5Display : public Print {
   void clearDisplay();
   void setCursor(int16_t x, int16_t y);
   void setTextSize(uint8_t size);
-  
+
   size_t write(uint8_t) override;
   size_t write(const uint8_t *buffer, size_t size) override;
 };

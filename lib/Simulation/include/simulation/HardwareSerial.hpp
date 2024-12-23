@@ -6,7 +6,7 @@
 class HardwareSerial : public Print {
  public:
   void begin(unsigned long baud);
-  
+
   size_t write(uint8_t) override;
   size_t write(const uint8_t *buffer, size_t size) override;
 };
