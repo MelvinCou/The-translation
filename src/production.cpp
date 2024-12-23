@@ -1,4 +1,3 @@
-#include <HTTPClient.h>
 #include <M5Stack.h>
 
 #ifndef ENV_SIMULATION

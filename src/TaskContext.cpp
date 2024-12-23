@@ -8,6 +8,7 @@ static portMUX_TYPE subTaskCountSpinLock = portMUX_INITIALIZER_UNLOCKED;
 
 TaskContext::TaskContext(Hardware* hardware)
     : m_hardware(hardware),
+      m_sharedValues(nullptr),
       m_allowSubTaskCreation(true),
       m_subTaskCount(0),
       m_nextTaskIndex(0),
@@ -16,8 +17,7 @@ TaskContext::TaskContext(Hardware* hardware)
       m_switchModeSemaphoreBuffer{},
       m_switchModeSemaphore(xSemaphoreCreateBinaryStatic(&m_switchModeSemaphoreBuffer)),
       m_currentMode(OperationMode::UNDEFINED),
-      m_requestedMode(OperationMode::UNDEFINED),
-      m_sharedValues(nullptr) {
+      m_requestedMode(OperationMode::UNDEFINED) {
   for (uint32_t i = 0; i < MAX_SUB_TASKS; i++) {
     m_subTaskHandles[i] = nullptr;
   }

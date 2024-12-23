@@ -24,10 +24,9 @@ class SimulationClient {
 
   void run();
 
-
  private:
   std::shared_ptr<std::atomic<bool>> m_stopToken;
-  
+
   std::atomic<State> m_state;
   int m_sockFd;
   std::vector<uint8_t> m_buf;
@@ -35,14 +34,14 @@ class SimulationClient {
   std::mutex m_c2sQueueLock;
   std::atomic<bool> m_hasC2SQueuedMessages;
   std::queue<C2SMessage> m_c2sQueue;
-  
+
   std::mutex m_s2cQueueLock;
   std::atomic<bool> m_hasS2CQueuedMessages;
   std::queue<S2CMessage> m_s2cQueue;
 
   int step();
   int transitionTo(State next);
-  
+
   int doConnect();
   int doWaitForIO();
   int doWrite();

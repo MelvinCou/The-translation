@@ -59,7 +59,7 @@ static void exposeWebConfigurator(TaskContext *ctx) {
   WiFiClass::mode(WIFI_AP);  // expose access point
   WiFi.softAP(SOFTAP_SSID, SOFTAP_PASSWORD);
 #endif
-  
+
   printIP();
 
   webConfigurator.serverListen();
