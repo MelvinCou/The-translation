@@ -231,3 +231,14 @@ int SimulationClient::doProcess() {
 
   return 0;
 }
+
+void SimulationClient::sendSetButton(uint8_t id, bool pressed) {
+  C2SMessage setBtnAMsg{C2SOpcode::SET_BUTTON, {}};
+  setBtnAMsg.setButton.id = id;
+  setBtnAMsg.setButton.value = pressed ? 1 : 0;
+  pushToServer(std::move(setBtnAMsg));
+}
+
+void SimulationClient::sendReset() {
+  pushToServer(C2SMessage{C2SOpcode::RESET, {}});
+}
