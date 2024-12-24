@@ -3,6 +3,7 @@ set(SOURCES
     src/Button.cpp
     src/GoPlus2.cpp
     src/HardwareSerial.cpp
+    src/HTTPClient.cpp
     src/M5Display.cpp
     src/M5Power.cpp
     src/M5Stack.cpp

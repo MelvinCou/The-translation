@@ -3,8 +3,8 @@
 WebConfig::WebConfig() {
   m_strings["ap_ssid"] = "";
   m_strings["ap_password"] = "";
-  m_strings["api_url"] = "http://...:8080/api/index.php";
   m_strings["api_key"] = "";
+  m_strings["api_url"] = "http://localhost:8080/api/index.php";
   m_ints["api_warehouse"] = 3;
   m_ints["conveyor_speed"] = 350;
 }

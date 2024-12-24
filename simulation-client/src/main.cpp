@@ -1,10 +1,12 @@
 #include <raylib.h>
 
+#include <HttpProxy.hpp>
 #include <SimulationClient.hpp>
 #include <atomic>
 #include <memory>
 #include <string>
 #include <thread>
+#include <unordered_map>
 
 #define M5_BG \
   CLITERAL(Color) { 34, 34, 34, 255 }
@@ -55,8 +57,9 @@ struct Status {
   int cursorY;
   float fontSize;
   uint32_t conveyorSpeed;
+  HttpProxy httpProxy;
 
-  explicit constexpr Status(Dimensions const &d)
+  explicit Status(Dimensions const &d)
       : btnADown(false),
         btnBDown(false),
         btnCDown(false),
@@ -64,7 +67,8 @@ struct Status {
         cursorX(0),
         cursorY(0),
         fontSize(2.f * d.scale),
-        conveyorSpeed(0) {}
+        conveyorSpeed(0),
+        httpProxy{} {}
 };
 
 static void resetStatus(Dimensions const &d, Status &status, Image *screen) {
@@ -133,6 +137,16 @@ static void handleEvents(SimulationClient &client, Dimensions const &d, Status &
           break;
         case S2COpcode::CONVEYOR_SET_SPEED:
           status.conveyorSpeed = msg.conveyorSetSpeed;
+          break;
+        case S2COpcode::HTTP_BEGIN:
+          status.httpProxy.begin(msg.httpBegin.reqId, reinterpret_cast<char const *>(msg.httpBegin.host), msg.httpBegin.len,
+                                 msg.httpBegin.port);
+          break;
+        case S2COpcode::HTTP_WRITE:
+          status.httpProxy.append(msg.httpWrite.reqId, reinterpret_cast<char const *>(msg.httpWrite.buf), msg.httpWrite.len);
+          break;
+        case S2COpcode::HTTP_END:
+          status.httpProxy.end(msg.httpEnd.reqId, client);
           break;
         case S2COpcode::MAX_OPCODE:
           break;

@@ -14,9 +14,10 @@ DolibarrClientStatus DolibarrClient::configure(const char* endpoint, const char*
   client.useHTTP10();
 
   String statusEndpoint = String(endpoint);
-  bool _ = statusEndpoint.concat(DOLIBARR_ENDPOINT_STATUS);
+  statusEndpoint += DOLIBARR_ENDPOINT_STATUS;
   client.begin(statusEndpoint);
   client.addHeader(DOLIBARR_HEADER_APIKEY, key);
+  client.addHeader("Accept", "application/json");
 
   int httpCode = client.GET();
 
@@ -31,22 +32,22 @@ DolibarrClientStatus DolibarrClient::configure(const char* endpoint, const char*
     LOG_ERROR("[HTTP] Invalid endpoint %s or api key %s\n", endpoint, key);
   } else {
     status = DolibarrClientStatus::READY;
-    if (m_tagEndpoint != nullptr) {
+    if (m_tagEndpoint != "") {
       m_tagEndpoint.clear();
-      bool _ = m_tagEndpoint.concat(endpoint);
-      _ = m_tagEndpoint.concat(DOLIBARR_ENDPOINT_PRODUCTS);
+      m_tagEndpoint += endpoint;
+      m_tagEndpoint += DOLIBARR_ENDPOINT_PRODUCTS;
     } else {
       m_tagEndpoint = String(endpoint);
-      bool _ = m_tagEndpoint.concat(DOLIBARR_ENDPOINT_PRODUCTS);
+      m_tagEndpoint += DOLIBARR_ENDPOINT_PRODUCTS;
     }
 
-    if (m_stockMovementEndpoint != nullptr) {
+    if (m_stockMovementEndpoint != "") {
       m_stockMovementEndpoint.clear();
-      bool _ = m_stockMovementEndpoint.concat(endpoint);
-      _ = m_stockMovementEndpoint.concat(DOLIBARR_ENDPOINT_STOCKMOVEMENTS);
+      m_stockMovementEndpoint += endpoint;
+      m_stockMovementEndpoint += DOLIBARR_ENDPOINT_STOCKMOVEMENTS;
     } else {
       m_stockMovementEndpoint = String(endpoint);
-      bool _ = m_stockMovementEndpoint.concat(DOLIBARR_ENDPOINT_STOCKMOVEMENTS);
+      m_stockMovementEndpoint += DOLIBARR_ENDPOINT_STOCKMOVEMENTS;
     }
 
     m_key = key;
@@ -61,8 +62,8 @@ DolibarrClientStatus DolibarrClient::sendTag(const int barcode, int& product, in
   status = DolibarrClientStatus::SENDING;
 
   String endpoint = String(m_tagEndpoint);
-  bool _ = endpoint.concat(barcode);
-  _ = endpoint.concat(DOLIBARR_ENDPOINT_PRODUCTS_END);
+  endpoint += barcode;
+  endpoint += DOLIBARR_ENDPOINT_PRODUCTS_END;
 
   client.begin(endpoint);
   client.addHeader(DOLIBARR_HEADER_APIKEY, m_key);
@@ -74,7 +75,9 @@ DolibarrClientStatus DolibarrClient::sendTag(const int barcode, int& product, in
 
   if (httpCode == HTTP_CODE_OK) {
     JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, client.getStream());
+    // TODO: streams?
+    // DeserializationError error = deserializeJson(doc, client.getStream());
+    DeserializationError error = DeserializationError::NoMemory;
     client.end();
 
     if (error) {
