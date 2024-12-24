@@ -9,7 +9,9 @@ set(SOURCES
     src/NonBlockingGRBL.cpp
     src/MFRC522_I2C.cpp
     src/Print.cpp
+    src/simulation.cpp 
     src/SimulationServer.cpp
+    src/watchdog.cpp
     src/WebConfig.cpp
     src/WebServer.cpp
     src/Wire.cpp
