@@ -159,25 +159,16 @@ static void handleEvents(SimulationClient &client, Dimensions const &d, Status &
 
 static void handleChange(SimulationClient &client, Status const &next, Status const &prev) {
   if (next.btnADown != prev.btnADown) {
-    C2SMessage setBtnAMsg{C2SOpcode::SET_BUTTON, {}};
-    setBtnAMsg.setButton.id = 0;
-    setBtnAMsg.setButton.value = next.btnADown ? 1 : 0;
-    client.pushToServer(std::move(setBtnAMsg));
+    client.sendSetButton(0, next.btnADown);
   }
   if (next.btnBDown != prev.btnBDown) {
-    C2SMessage setBtnBMsg{C2SOpcode::SET_BUTTON, {}};
-    setBtnBMsg.setButton.id = 1;
-    setBtnBMsg.setButton.value = next.btnBDown ? 1 : 0;
-    client.pushToServer(std::move(setBtnBMsg));
+    client.sendSetButton(1, next.btnBDown);
   }
   if (next.btnCDown != prev.btnCDown) {
-    C2SMessage setBtnCMsg{C2SOpcode::SET_BUTTON, {}};
-    setBtnCMsg.setButton.id = 2;
-    setBtnCMsg.setButton.value = next.btnCDown ? 1 : 0;
-    client.pushToServer(std::move(setBtnCMsg));
+    client.sendSetButton(2, next.btnCDown);
   }
   if (next.btnRDown != prev.btnRDown) {
-    client.pushToServer(C2SMessage{C2SOpcode::RESET, {}});
+    client.sendReset();
   }
   fflush(stdout);
 }
@@ -208,6 +199,51 @@ static void drawButtons(Dimensions const &d, Status const &status) {
 }
 
 static void runClient(std::shared_ptr<SimulationClient> const &client) { client->run(); }
+
+static void drawGui(SimulationClient &client, Status &status) {
+  ImGui::ShowDemoWindow(nullptr);
+  ImGui::SetNextWindowCollapsed(false, ImGuiCond_Once);
+  if (!ImGui::Begin("TheTranslation Control Panel", nullptr, 0)) {
+    // Early out if the window is collapsed, as an optimization.
+    ImGui::End();
+    return;
+  }
+
+  if (ImGui::CollapsingHeader("Simulation Status", ImGuiTreeNodeFlags_DefaultOpen)) {
+    bool isConnecting = client.getState() == SimulationClient::State::CONNECTING;
+    if (isConnecting) {
+      ImGui::TextColored({1.f, 0.f, 0.f, 1.f}, "Connecting...");
+    } else {
+      ImGui::TextColored({0.f, 1.f, 0.f, 1.f}, "Connected!");
+    }
+  }
+
+  if (ImGui::CollapsingHeader("M5Stack")) {
+    if (ImGui::Button("Reset")) {
+      client.sendReset();
+    }
+    if (ImGui::Button("Button A")) {
+      client.sendSetButton(0, false);
+    } else if (ImGui::IsItemClicked()) {
+      client.sendSetButton(0, true);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Button B")) {
+      client.sendSetButton(1, false);
+    } else if (ImGui::IsItemClicked()) {
+      client.sendSetButton(1, true);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Button C")) {
+      client.sendSetButton(2, false);
+    } else if (ImGui::IsItemClicked()) {
+      client.sendSetButton(2, true);
+    }
+  }
+
+  fflush(stdout);
+  ImGui::End();
+}
 
 int main() {
   SetTraceLogLevel(LOG_NONE);
@@ -270,10 +306,9 @@ int main() {
     drawButtons(d, status);
 
     rlImGuiBegin();
-    bool open = true;
-    ImGui::ShowDemoWindow(&open);
+    drawGui(*client, status);
     rlImGuiEnd();
-    
+
     EndDrawing();
 
     UnloadTexture(screenTexture);
