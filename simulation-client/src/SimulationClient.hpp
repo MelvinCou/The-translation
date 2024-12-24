@@ -24,6 +24,11 @@ class SimulationClient {
 
   void run();
 
+  // Actions
+
+  void sendSetButton(uint8_t id, bool pressed);
+  void sendReset();
+
  private:
   std::shared_ptr<std::atomic<bool>> m_stopToken;
 
