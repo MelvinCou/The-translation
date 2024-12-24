@@ -1,6 +1,6 @@
 #include <esp_log.h>
-#include <signal.h>
 #include <freertos/FreeRTOS.h>
+#include <signal.h>
 #include <sys/wait.h>
 
 #include <cerrno>
@@ -16,7 +16,6 @@ static char* getExecutablePath(char buf[], size_t size) {
   return buf;
 }
 
-
 [[noreturn]] static void startSimulationProcess(char const* exePath) {
   extern char** environ;
   char const* const argv[2] = {exePath, nullptr};
@@ -26,7 +25,7 @@ static char* getExecutablePath(char buf[], size_t size) {
   }
   env.push_back("THE_TRANSLATION_SIMULATED=1");
   env.push_back(nullptr);
-  execve(exePath, const_cast<char* const *>(argv), const_cast<char* const *>(env.data()));
+  execve(exePath, const_cast<char* const*>(argv), const_cast<char* const*>(env.data()));
   ESP_LOGE("watchdog", "Failed to spawn simulation process %s: %s", exePath, strerror(errno));
   exit(EXIT_FAILURE);
 }

@@ -5,6 +5,7 @@
 #include <memory>
 #include <mutex>
 #include <queue>
+#include <unordered_map>
 #include <vector>
 
 #include "simulation/SimulationMessage.hpp"
@@ -16,6 +17,7 @@ class SimulationServer {
   void registerButton(int id, std::shared_ptr<std::atomic<bool>> const &isPressed);
 
   void pushToClient(S2CMessage &&msg);
+  std::vector<char> popHttpResponse(uint32_t reqId);
 
   void run();
 
@@ -50,6 +52,11 @@ class SimulationServer {
   std::mutex m_queueLock;
   std::atomic<bool> m_hasQueuedMessages;
   std::queue<S2CMessage> m_queue;
+
+  std::mutex m_httpResLock;
+  std::atomic<bool> m_hasHttpResponses;
+  std::unordered_map<uint32_t, std::vector<char>> m_httpPartialResponses;
+  std::unordered_map<uint32_t, std::vector<char>> m_httpResponses;
 };
 
 #define SIM_SOCKET_PATH "/tmp/the-translation.sock"

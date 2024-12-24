@@ -191,7 +191,6 @@ static void readAndPrintTags(TaskContext *ctx) {
   } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
 }
 
-#ifndef ENV_SIMULATION
 static void makeHttpRequests(TaskContext *ctx) {
   Buttons &buttons = ctx->getHardware()->buttons;
   WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
@@ -201,6 +200,7 @@ static void makeHttpRequests(TaskContext *ctx) {
       buttons.update();
       if (buttons.BtnA->wasPressed()) {
         LOG_INFO("\n[HTTP] Starting!\n");
+#ifndef ENV_SIMULATION
         WiFiClass::mode(WIFI_STA);  // connect to access point
         WiFi.begin(webConfigurator.getApSsid(), webConfigurator.getApPassword());
         M5.Lcd.println("Connecting to WIFI");
@@ -213,6 +213,7 @@ static void makeHttpRequests(TaskContext *ctx) {
           M5.Lcd.print(".");
         }
         M5.Lcd.println("Connection successful");
+#endif
 
       } else if (buttons.BtnC->wasPressed()) {
         M5.Lcd.println("SEND STATUS REQUEST");
@@ -235,7 +236,6 @@ static void makeHttpRequests(TaskContext *ctx) {
     }
   } while (interruptibleTaskPauseMs(BUTTONS_READ_INTERVAL));
 }
-#endif
 
 void startMaintenanceMode(TaskContext *ctx) {
   LOG_INFO("Starting maintenance mode\n");
@@ -248,7 +248,5 @@ void startMaintenanceMode(TaskContext *ctx) {
   spawnSubTask(runConveyor, ctx);
   spawnSubTask(startSorter, ctx);
   spawnSubTask(readAndPrintTags, ctx);
-#ifndef ENV_SIMULATION
   spawnSubTask(makeHttpRequests, ctx);
-#endif
 }

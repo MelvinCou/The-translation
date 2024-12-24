@@ -19,6 +19,4 @@ static void listenTask(void*) {
   }
 }
 
-void simulationMain() {
-  xTaskCreate(loopTask, "loopTask", 8192, nullptr, 1, nullptr);
-}
+void simulationMain() { xTaskCreate(loopTask, "loopTask", 8192, nullptr, 1, nullptr); }

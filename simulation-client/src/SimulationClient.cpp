@@ -120,7 +120,12 @@ int SimulationClient::doWaitForIO() {
     return 0;
   }
 
-  if ((pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) != 0) {
+  if ((pfd.revents & POLLHUP) != 0) {
+    printf("Connection closed by server\n");
+    return transitionTo(State::CONNECTING);
+  }
+
+  if ((pfd.revents & (POLLERR | POLLNVAL)) != 0) {
     printf("Error on socket: %s\n", strerror(errno));
     return transitionTo(State::CONNECTING);
   }
@@ -141,7 +146,8 @@ int SimulationClient::doWrite() {
     auto const* toWrite = reinterpret_cast<uint8_t const*>(&msg);
     size_t len = msg.getLength();
 
-    printf("Writing message of type %d to server, %zu remaining\n", static_cast<int>(msg.opcode), m_c2sQueue.size() - 1);
+    printf("[SEND] %s\n", msg.getName());
+
     while (len > 0) {
       ssize_t numBytes = send(m_sockFd, toWrite, len, MSG_NOSIGNAL);
       if (numBytes < 0) {
@@ -216,6 +222,8 @@ int SimulationClient::doProcess() {
     default:
       break;
   }
+
+  printf("[RECV] %s\n", msg.getName());
 
   std::unique_lock<std::mutex> lock(m_s2cQueueLock);
   m_s2cQueue.push(std::move(msg));

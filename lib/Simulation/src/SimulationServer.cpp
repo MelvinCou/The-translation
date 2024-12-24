@@ -15,7 +15,7 @@ SimulationServer SimServer;
 
 SimulationServer::SimulationServer() : m_state(State::IDLE), m_serverFd(-1), m_clientFd(-1) {}
 
-void SimulationServer::registerButton(int id, std::shared_ptr<std::atomic<bool>> const &isPressed) {
+void SimulationServer::registerButton(int id, std::shared_ptr<std::atomic<bool>> const& isPressed) {
   switch (id) {
     case 0:
       m_btnAIsPressed = isPressed;
@@ -31,11 +31,22 @@ void SimulationServer::registerButton(int id, std::shared_ptr<std::atomic<bool>>
   }
 }
 
-void SimulationServer::pushToClient(S2CMessage &&msg) {
+void SimulationServer::pushToClient(S2CMessage&& msg) {
   std::unique_lock<std::mutex> lock(m_queueLock);
   m_queue.push(std::move(msg));
   lock.unlock();
   m_hasQueuedMessages.store(true);
+}
+
+std::vector<char> SimulationServer::popHttpResponse(uint32_t reqId) {
+  if (!m_hasHttpResponses.load()) return {};
+  std::unique_lock<std::mutex> lock(m_httpResLock);
+  auto res = m_httpResponses.find(reqId);
+  m_hasHttpResponses.store(!m_httpResponses.empty());
+  if (res == m_httpResponses.end()) return {};
+  std::vector<char> res2 = std::move(res->second);
+  m_httpResponses.erase(res);
+  return res2;
 }
 
 #define TAG "SimServer"
@@ -67,6 +78,7 @@ int SimulationServer::transitionTo(State next) {
 
   if (next == State::LISTENING) {
     if (m_clientFd != -1) {
+      ESP_LOGW(TAG, "Closing client connection");
       close(m_clientFd);
     }
     m_buf.clear();
@@ -101,7 +113,7 @@ int SimulationServer::doOpen() {
   unlink(SIM_SOCKET_PATH);
 
   // Bind the socket to the address
-  if (bind(m_serverFd, reinterpret_cast<sockaddr *>(&serverAddr), sizeof(serverAddr)) < 0) {
+  if (bind(m_serverFd, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) < 0) {
     ESP_LOGE(TAG, "Failed to bind to socket at %s: %s", SIM_SOCKET_PATH, strerror(errno));
     close(m_serverFd);
     return -1;
@@ -134,7 +146,7 @@ int SimulationServer::doListen() {
 
   do {
     clientAddrLen = sizeof(clientAddr);
-    m_clientFd = accept(m_serverFd, reinterpret_cast<sockaddr *>(&clientAddr), &clientAddrLen);
+    m_clientFd = accept(m_serverFd, reinterpret_cast<sockaddr*>(&clientAddr), &clientAddrLen);
     if (m_clientFd < 0 && errno != EWOULDBLOCK) {
       ESP_LOGE(TAG, "Failed to accept client: %s", strerror(errno));
       return transitionTo(State::LISTENING);
@@ -147,6 +159,7 @@ int SimulationServer::doListen() {
       }
     }
   } while (m_clientFd < 0);
+  ESP_LOGI(TAG, "Accepted client connection");
   return transitionTo(State::READING);
 }
 
@@ -157,7 +170,7 @@ int SimulationServer::doRead() {
 
   tryPushQueuedMessage();
   do {
-    numBytes = read(m_clientFd, buf + offset, sizeof(buf) - offset);
+    numBytes = recv(m_clientFd, buf + offset, sizeof(buf) - offset, MSG_NOSIGNAL | MSG_DONTWAIT);
 
     if (numBytes < 0) {
       if (errno == EWOULDBLOCK) continue;
@@ -165,8 +178,7 @@ int SimulationServer::doRead() {
       return transitionTo(State::LISTENING);
     }
     if (numBytes == 0) {
-      ESP_LOGW(TAG, "Empty message from client");
-      return transitionTo(State::LISTENING);
+      continue;
     }
     offset += numBytes;
     m_buf.insert(m_buf.end(), buf, buf + numBytes);
@@ -175,8 +187,8 @@ int SimulationServer::doRead() {
   return transitionTo(State::PROCESSING);
 }
 
-static int writeMessage(int clientFd, S2CMessage const *msg) {
-  auto const *toWrite = reinterpret_cast<uint8_t const *>(msg);
+static int writeMessage(int clientFd, S2CMessage const* msg) {
+  auto const* toWrite = reinterpret_cast<uint8_t const*>(msg);
   size_t len = msg->getLength();
 
   while (len > 0) {
@@ -200,7 +212,8 @@ void SimulationServer::tryPushQueuedMessage() {
   if (!m_hasQueuedMessages.load()) return;
   std::unique_lock<std::mutex> lock(m_queueLock);
   while (!m_queue.empty()) {
-    S2CMessage const &msg = m_queue.front();
+    S2CMessage const& msg = m_queue.front();
+    ESP_LOGD(TAG, "[SEND] %s", msg.getName());
     if (writeMessage(m_clientFd, &msg) >= 0) {
       m_queue.pop();
     }
@@ -214,7 +227,7 @@ enum NextMessageResult : int {
   C2S_MSG_READY = 1,
 };
 
-static NextMessageResult popNextMessage(std::vector<uint8_t> &data, C2SMessage *msg) {
+static NextMessageResult popNextMessage(std::vector<uint8_t>& data, C2SMessage* msg) {
   if (data.empty()) {
     return C2S_MSG_PARTIAL;
   }
@@ -246,8 +259,9 @@ int SimulationServer::doProcess() {
       break;
   }
 
+  ESP_LOGD(TAG, "[RECV] %s", msg.getName());
+
   if (msg.opcode == C2SOpcode::SET_BUTTON) {
-    ESP_LOGI(TAG, "Setting button %d to %d", msg.setButton.id, msg.setButton.value);
     switch (msg.setButton.id) {
       case 0:
         m_btnAIsPressed->store(msg.setButton.value != 0);
@@ -262,9 +276,25 @@ int SimulationServer::doProcess() {
         break;
     }
   } else if (msg.opcode == C2SOpcode::RESET) {
+    ESP_LOGW(TAG, "Reset message received, closing server");
     close(m_clientFd);
     close(m_serverFd);
     exit(0);
+  } else if (msg.opcode == C2SOpcode::HTTP_BEGIN) {
+    m_httpPartialResponses[msg.httpBegin.reqId] = {};
+  } else if (msg.opcode == C2SOpcode::HTTP_WRITE) {
+    auto res = m_httpPartialResponses.find(msg.httpWrite.reqId);
+
+    if (res == m_httpPartialResponses.end()) {
+      ESP_LOGW(TAG, "Received HTTP_WRITE for unknown request %u", msg.httpWrite.reqId);
+      return 0;
+    }
+    res->second.insert(res->second.end(), msg.httpWrite.buf, msg.httpWrite.buf + msg.httpWrite.len);
+  } else if (msg.opcode == C2SOpcode::HTTP_END) {
+    std::unique_lock<std::mutex> lock(m_httpResLock);
+    m_httpResponses[msg.httpEnd.reqId] = std::move(m_httpPartialResponses[msg.httpEnd.reqId]);
+    m_httpPartialResponses.erase(msg.httpEnd.reqId);
+    m_hasHttpResponses.store(true);
   }
   return 0;
 }

@@ -129,12 +129,12 @@ static void sortPackages(TaskContext *ctx) {
   } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
 }
 
-#ifndef ENV_SIMULATION
 static void makeHttpRequests(TaskContext *ctx) {
   WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
   DolibarrClient &dolibarrClient = ctx->getHardware()->dolibarrClient;
   auto values = ctx->getSharedValues<ProductionValues>();
 
+#ifndef ENV_SIMULATION
   WiFiClass::mode(WIFI_STA);  // connect to access point
   WiFi.begin(webConfigurator.getApSsid(), webConfigurator.getApPassword());
   LOG_INFO("[HTTP] Connecting to WIFI");
@@ -147,6 +147,7 @@ static void makeHttpRequests(TaskContext *ctx) {
     LOG_INFO(".");
   }
   LOG_INFO("\n[HTTP] Connected!\n");
+#endif  // !defined(ENV_SIMULATION)
 
   int product = 0, warehouse = 0, tag = 0;
   bool newTag = false;
@@ -175,7 +176,6 @@ static void makeHttpRequests(TaskContext *ctx) {
       break;
   }
 }
-#endif  // !defined(ENV_SIMULATION)
 
 void startProductionMode(TaskContext *ctx) {
   LOG_INFO("Starting production mode\n");
@@ -186,9 +186,7 @@ void startProductionMode(TaskContext *ctx) {
   spawnSubTask(readTagsAndRunConveyor, ctx);
   spawnSubTask(testTagReader, ctx);
   spawnSubTask(sortPackages, ctx);
-#ifndef ENV_SIMULATION
   spawnSubTask(makeHttpRequests, ctx);
-#endif
 
   M5.Lcd.clearDisplay();
   M5.Lcd.setCursor(0, 0);

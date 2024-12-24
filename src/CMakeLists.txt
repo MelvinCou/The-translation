@@ -2,6 +2,7 @@ set(SOURCES
         Buttons.cpp
         configuration.cpp
         Conveyor.cpp
+        DolibarrClient.cpp
         Hardware.cpp
         lcdScreen.cpp
         main.cpp
