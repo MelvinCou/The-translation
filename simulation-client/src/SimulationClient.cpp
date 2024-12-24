@@ -143,7 +143,7 @@ int SimulationClient::doWrite() {
 
     printf("Writing message of type %d to server, %zu remaining\n", static_cast<int>(msg.opcode), m_c2sQueue.size() - 1);
     while (len > 0) {
-      ssize_t numBytes = write(m_sockFd, toWrite, len);
+      ssize_t numBytes = send(m_sockFd, toWrite, len, MSG_NOSIGNAL);
       if (numBytes < 0) {
         printf("Failed to write message to server: %s\n", strerror(errno));
         return transitionTo(State::CONNECTING);
@@ -165,7 +165,7 @@ int SimulationClient::doRead() {
   unsigned char buf[256];
   ssize_t numBytes;
 
-  numBytes = read(m_sockFd, buf, sizeof(buf));
+  numBytes = recv(m_sockFd, buf, sizeof(buf), MSG_NOSIGNAL);
 
   if (numBytes < 0) {
     printf("Failed to read server message: %s\n", strerror(errno));
