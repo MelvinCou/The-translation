@@ -6,7 +6,9 @@
 #include <memory>
 #include <string>
 #include <thread>
-#include <unordered_map>
+
+#include "imgui.h"
+#include "rlImGui.h"
 
 #define M5_BG \
   CLITERAL(Color) { 34, 34, 34, 255 }
@@ -213,6 +215,7 @@ int main() {
   SetWindowState(FLAG_WINDOW_RESIZABLE);
 
   SetTargetFPS(60);  // Set our game to run at 60 frames-per-second
+  rlImGuiSetup(true);
 
   Dimensions d(GetScreenWidth(), GetScreenHeight());
   Status status(d);
@@ -265,6 +268,12 @@ int main() {
     DrawText(conveyorSpeed.c_str(), d.screenWidth - MeasureText(conveyorSpeed.c_str(), 20) - 10, d.screenHeight - 30, 20, DARKGREEN);
 
     drawButtons(d, status);
+
+    rlImGuiBegin();
+    bool open = true;
+    ImGui::ShowDemoWindow(&open);
+    rlImGuiEnd();
+    
     EndDrawing();
 
     UnloadTexture(screenTexture);
