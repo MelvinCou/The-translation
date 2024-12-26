@@ -1,4 +1,6 @@
 set(SOURCES
+        Configuration.cpp
+        gui.cpp
         HttpProxy.cpp
         main.cpp
         SimulationClient.cpp

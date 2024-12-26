@@ -18,6 +18,7 @@ class SimulationServer {
 
   void pushToClient(S2CMessage &&msg);
   std::vector<char> popHttpResponse(uint32_t reqId);
+  bool popConfigRead(C2SMessage &msg);
 
   void run();
 
@@ -32,6 +33,10 @@ class SimulationServer {
   size_t sendHttpWrite(uint32_t reqId, char const *buf, size_t len);
   void sendHttpEnd(uint32_t reqId);
   void sendConfigSchemaReset();
+  void sendConfigSchemaDefine(uint8_t type, char const *name, char const *label, char const *def);
+  void sendConfigEndDefine();
+  void sendConfigSetExposed(bool exposed);
+  void sendConfigFullReadBegin();
 
  private:
   // server state machine
@@ -69,6 +74,10 @@ class SimulationServer {
   std::atomic<bool> m_hasHttpResponses;
   std::unordered_map<uint32_t, std::vector<char>> m_httpPartialResponses;
   std::unordered_map<uint32_t, std::vector<char>> m_httpResponses;
+
+  std::mutex m_configReadLock;
+  std::atomic<bool> m_hasQueuedConfigRead;
+  std::queue<C2SMessage> m_configReadQueue;
 };
 
 #define SIM_SOCKET_PATH "/tmp/the-translation.sock"

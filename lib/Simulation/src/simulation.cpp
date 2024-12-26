@@ -12,8 +12,8 @@ static void listenTask(void*) {
 }
 
 [[noreturn]] static void loopTask(void*) {
-  setup();
   xTaskCreate(listenTask, "listenTask", 8192, nullptr, 1, nullptr);
+  setup();
   for (;;) {
     loop();
   }

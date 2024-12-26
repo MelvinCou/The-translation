@@ -36,6 +36,10 @@ class WebConfig {
  private:
   std::unordered_map<String, String> m_strings;
   std::unordered_map<String, int> m_ints;
+
+  bool popValueChange(bool cancelOnFullReadEnd);
+
+  friend class WebServer;
 };
 
 #endif  // !defined(SIMULATION_WEB_CONFIG_HPP)
