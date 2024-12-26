@@ -42,26 +42,38 @@ struct __attribute__((packed)) C2SMessage {
     HttpEndPayload httpEnd;
   };
 
-  [[nodiscard]] size_t getLength() const {
+  /// @return The total length of the message in bytes (header + payload)
+  [[nodiscard]] size_t length() const { return headerLength(opcode) + tailLength(); }
+
+  /// @return The length of the header part of the message in bytes
+  [[nodiscard]] static size_t headerLength(C2SOpcode opcode) {
     switch (opcode) {
-      case C2SOpcode::PING:
-      case C2SOpcode::RESET:
-        return 1;
-      case C2SOpcode::SET_BUTTON:
-        return 1 + sizeof(setButton);
       case C2SOpcode::HTTP_BEGIN:
-        return 1 + sizeof(httpBegin);
+        return 8;
       case C2SOpcode::HTTP_WRITE:
-        return 1 + sizeof(httpWrite);
-      case C2SOpcode::HTTP_END:
-        return 1 + sizeof(httpEnd);
-      case C2SOpcode::MAX_OPCODE:
-        return 0;
+        return 6;
+      default:
+        return 1;
     }
-    return 0;
   }
 
-  [[nodiscard]] char const *getName() const {
+  [[nodiscard]] size_t tailLength() const {
+    switch (opcode) {
+      case C2SOpcode::SET_BUTTON:
+        return sizeof(setButton);
+      case C2SOpcode::HTTP_BEGIN:
+        return std::min(static_cast<size_t>(httpBegin.len), sizeof(httpBegin.host));
+      case C2SOpcode::HTTP_WRITE:
+        return std::min(static_cast<size_t>(httpWrite.len), sizeof(httpWrite.buf));
+      case C2SOpcode::HTTP_END:
+        return sizeof(httpEnd);
+      default:
+        return 0;
+    }
+  }
+
+  /// @return The length of the header part of the message in bytes
+  [[nodiscard]] char const *name() const {
     switch (opcode) {
       case C2SOpcode::PING:
         return "PONG";
@@ -114,35 +126,51 @@ struct __attribute__((packed)) S2CMessage {
     HttpBeginPayload httpBegin;
     HttpWritePayload httpWrite;
     HttpEndPayload httpEnd;
+    struct {
+      uint8_t type;
+    } configSchemaDefine;
   };
 
-  [[nodiscard]] size_t getLength() const {
+  /// @return The total length of the message in bytes (header + payload)
+  [[nodiscard]] size_t length() const { return headerLength(opcode) + tailLength(); }
+
+  /// @return The length of the header part of the message in bytes
+  [[nodiscard]] static size_t headerLength(S2COpcode opcode) {
     switch (opcode) {
-      case S2COpcode::PONG:
-      case S2COpcode::RESET:
-      case S2COpcode::LCD_CLEAR:
-        return 1;
-      case S2COpcode::LCD_SET_CURSOR:
-        return 1 + sizeof(lcdSetCursor);
-      case S2COpcode::LCD_SET_TEXT_SIZE:
-        return 1 + sizeof(lcdSetTextSize);
       case S2COpcode::LCD_WRITE:
-        return 1 + sizeof(lcdWrite);
-      case S2COpcode::CONVEYOR_SET_SPEED:
-        return 1 + sizeof(conveyorSetSpeed);
+        return 2;
       case S2COpcode::HTTP_BEGIN:
-        return 1 + sizeof(httpBegin);
+        return 8;
       case S2COpcode::HTTP_WRITE:
-        return 1 + sizeof(httpWrite);
-      case S2COpcode::HTTP_END:
-        return 1 + sizeof(httpEnd);
-      case S2COpcode::MAX_OPCODE:
-        return 0;
+        return 6;
+      default:
+        return 1;
     }
-    return 0;
   }
 
-  [[nodiscard]] char const *getName() const {
+  /// @return The length of the tail part of the message in bytes
+  [[nodiscard]] size_t tailLength() const {
+    switch (opcode) {
+      case S2COpcode::LCD_SET_CURSOR:
+        return sizeof(lcdSetCursor);
+      case S2COpcode::LCD_SET_TEXT_SIZE:
+        return sizeof(lcdSetTextSize);
+      case S2COpcode::LCD_WRITE:
+        return std::min(static_cast<size_t>(lcdWrite.len), sizeof(lcdWrite.buf));
+      case S2COpcode::CONVEYOR_SET_SPEED:
+        return sizeof(conveyorSetSpeed);
+      case S2COpcode::HTTP_BEGIN:
+        return std::min(static_cast<size_t>(httpBegin.len), sizeof(httpBegin.host));
+      case S2COpcode::HTTP_WRITE:
+        return std::min(static_cast<size_t>(httpWrite.len), sizeof(httpWrite.buf));
+      case S2COpcode::HTTP_END:
+        return sizeof(httpEnd);
+      default:
+        return 0;
+    }
+  }
+
+  [[nodiscard]] char const *name() const {
     switch (opcode) {
       case S2COpcode::PONG:
         return "PONG";

@@ -144,9 +144,9 @@ int SimulationClient::doWrite() {
   while (!m_c2sQueue.empty()) {
     C2SMessage const& msg = m_c2sQueue.front();
     auto const* toWrite = reinterpret_cast<uint8_t const*>(&msg);
-    size_t len = msg.getLength();
+    size_t len = msg.length();
 
-    printf("[SEND] %s\n", msg.getName());
+    printf("[SEND] %s\n", msg.name());
 
     while (len > 0) {
       ssize_t numBytes = send(m_sockFd, toWrite, len, MSG_NOSIGNAL);
@@ -200,14 +200,21 @@ static NextMessageResult popNextMessage(std::vector<uint8_t>& data, S2CMessage* 
     printf("Invalid opcode: %d\n", rawOpcode);
     return S2C_MSG_ERR;
   }
-  msg->opcode = static_cast<S2COpcode>(data[0]);
-  size_t len = msg->getLength();
+  size_t headerLen = S2CMessage::headerLength(static_cast<S2COpcode>(data[0]));
 
-  if (data.size() < len) {
+  // Try to read the header part
+  if (data.size() < headerLen) {
     return S2C_MSG_PARTIAL;
   }
-  memcpy(msg, data.data(), len);
-  data.erase(data.begin(), data.begin() + len);
+  memcpy(msg, data.data(), headerLen);
+  size_t tailLen = msg->tailLength();
+
+  // Read the rest of the message if possible
+  if (data.size() - headerLen < tailLen) {
+    return S2C_MSG_PARTIAL;
+  }
+  memcpy(reinterpret_cast<char*>(msg) + headerLen, data.data() + headerLen, tailLen);
+  data.erase(data.begin(), data.begin() + headerLen + tailLen);
   return S2C_MSG_READY;
 }
 
@@ -223,7 +230,7 @@ int SimulationClient::doProcess() {
       break;
   }
 
-  printf("[RECV] %s\n", msg.getName());
+  printf("[RECV] %s\n", msg.name());
 
   std::unique_lock<std::mutex> lock(m_s2cQueueLock);
   m_s2cQueue.push(std::move(msg));

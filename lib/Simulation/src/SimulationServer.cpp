@@ -187,7 +187,7 @@ int SimulationServer::doRead() {
 
 static int writeMessage(int clientFd, S2CMessage const* msg) {
   auto const* toWrite = reinterpret_cast<uint8_t const*>(msg);
-  size_t len = msg->getLength();
+  size_t len = msg->length();
 
   while (len > 0) {
     ssize_t numBytes = write(clientFd, toWrite, len);
@@ -211,7 +211,7 @@ void SimulationServer::tryPushQueuedMessage() {
   std::unique_lock<std::mutex> lock(m_queueLock);
   while (!m_queue.empty()) {
     S2CMessage const& msg = m_queue.front();
-    ESP_LOGD(TAG, "[SEND] %s", msg.getName());
+    ESP_LOGD(TAG, "[SEND] %s", msg.name());
     if (writeMessage(m_clientFd, &msg) >= 0) {
       m_queue.pop();
     }
@@ -234,14 +234,21 @@ static NextMessageResult popNextMessage(std::vector<uint8_t>& data, C2SMessage* 
     ESP_LOGW(TAG, "Invalid opcode: %d", rawOpcode);
     return C2S_MSG_ERR;
   }
-  msg->opcode = static_cast<C2SOpcode>(data[0]);
-  size_t len = msg->getLength();
+  size_t headerLen = C2SMessage::headerLength(static_cast<C2SOpcode>(data[0]));
 
-  if (data.size() < len) {
+  // Try to read the header part
+  if (data.size() < headerLen) {
     return C2S_MSG_PARTIAL;
   }
-  memcpy(msg, data.data(), len);
-  data.erase(data.begin(), data.begin() + len);
+  memcpy(msg, data.data(), headerLen);
+  size_t tailLen = msg->tailLength();
+
+  // Read the rest of the message if possible
+  if (data.size() - headerLen < tailLen) {
+    return C2S_MSG_PARTIAL;
+  }
+  memcpy(reinterpret_cast<char*>(msg) + headerLen, data.data() + headerLen, tailLen);
+  data.erase(data.begin(), data.begin() + headerLen + tailLen);
   return C2S_MSG_READY;
 }
 
@@ -257,7 +264,7 @@ int SimulationServer::doProcess() {
       break;
   }
 
-  ESP_LOGD(TAG, "[RECV] %s", msg.getName());
+  ESP_LOGD(TAG, "[RECV] %s", msg.name());
 
   if (msg.opcode == C2SOpcode::SET_BUTTON) {
     switch (msg.setButton.id) {
