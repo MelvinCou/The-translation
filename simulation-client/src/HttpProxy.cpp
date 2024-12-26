@@ -39,6 +39,12 @@ void HttpProxy::end(uint32_t reqId, SimulationClient &client) {
   sendResponse(req, res, client);
 }
 
+static constexpr char SERVICE_UNAVAILABLE_RESPONSE[] = "HTTP/1.0 503 Service Unavailable\r\n\r\n";
+
+static std::vector<char> serviceUnavailableResponse() {
+  return std::vector<char>(SERVICE_UNAVAILABLE_RESPONSE, SERVICE_UNAVAILABLE_RESPONSE + (sizeof(SERVICE_UNAVAILABLE_RESPONSE) - 1));
+}
+
 std::vector<char> HttpProxy::sendRequest(Request const &req) {
   auto reqLineEnd = std::find(req.data.cbegin(), req.data.cend(), '\r');
 
@@ -51,14 +57,14 @@ std::vector<char> HttpProxy::sendRequest(Request const &req) {
 
   if (getaddrinfo(req.host.c_str(), nullptr, &hints, &resolved) != 0) {
     fprintf(stderr, "Error resolving host %s: %s\n", req.host.c_str(), strerror(errno));
-    return {};
+    return serviceUnavailableResponse();
   }
 
   int sockFd = socket(hints.ai_family, hints.ai_socktype, 0);
   if (sockFd < 0) {
     fprintf(stderr, "Error creating socket for request to %s: %s\n", req.host.c_str(), strerror(errno));
     freeaddrinfo(resolved);
-    return {};
+    return serviceUnavailableResponse();
   }
 
   auto *serverAddr = reinterpret_cast<sockaddr_in *>(resolved->ai_addr);
@@ -68,7 +74,7 @@ std::vector<char> HttpProxy::sendRequest(Request const &req) {
     fprintf(stderr, "Error connecting to %s: %s\n", req.host.c_str(), strerror(errno));
     close(sockFd);
     freeaddrinfo(resolved);
-    return {};
+    return serviceUnavailableResponse();
   }
 
   // Send the request
@@ -80,7 +86,7 @@ std::vector<char> HttpProxy::sendRequest(Request const &req) {
       fprintf(stderr, "Error while sending request to %s: %s\n", req.host.c_str(), strerror(errno));
       close(sockFd);
       freeaddrinfo(resolved);
-      return {};
+      return serviceUnavailableResponse();
     }
     totalSent += sent;
   }
@@ -98,7 +104,7 @@ std::vector<char> HttpProxy::sendRequest(Request const &req) {
     fprintf(stderr, "Error reading response from %s: %s\n", req.host.c_str(), strerror(errno));
     close(sockFd);
     freeaddrinfo(resolved);
-    return {};
+    return serviceUnavailableResponse();
   }
 
   // Close the socket
