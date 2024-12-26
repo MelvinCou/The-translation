@@ -11,6 +11,8 @@
 #include <cstdlib>
 #include <vector>
 
+#define TAG "SimServer"
+
 SimulationServer SimServer;
 
 SimulationServer::SimulationServer() : m_state(State::IDLE), m_serverFd(-1), m_clientFd(-1) {}
@@ -49,8 +51,6 @@ std::vector<char> SimulationServer::popHttpResponse(uint32_t reqId) {
   return res2;
 }
 
-#define TAG "SimServer"
-
 void SimulationServer::run() {
   while (step() >= 0) {
     //
@@ -87,8 +87,6 @@ int SimulationServer::transitionTo(State next) {
   m_state = next;
   return 0;
 }
-
-#define TAG "SimServer"
 
 int SimulationServer::doOpen() {
   if (m_serverFd == -1) {
@@ -297,4 +295,67 @@ int SimulationServer::doProcess() {
     m_hasHttpResponses.store(true);
   }
   return 0;
+}
+
+void SimulationServer::sendLcdClear() {
+  S2CMessage msg{S2COpcode::LCD_CLEAR, {}};
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendLcdSetCursor(int16_t x, int16_t y) {
+  S2CMessage msg{S2COpcode::LCD_SET_CURSOR, {}};
+  msg.lcdSetCursor.x = x;
+  msg.lcdSetCursor.y = y;
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendLcdSetTextSize(uint8_t size) {
+  S2CMessage msg{S2COpcode::LCD_SET_TEXT_SIZE, {}};
+  msg.lcdSetTextSize.size = size;
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendLcdWrite(uint8_t const* buf, uint8_t len) {
+  S2CMessage msg{S2COpcode::LCD_WRITE, {}};
+  msg.lcdWrite.len = len;
+  memset(msg.lcdWrite.buf, 0, sizeof(msg.lcdWrite.buf));
+  memcpy(msg.lcdWrite.buf, buf, len);
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendConveyorSetSpeed(uint32_t speed) {
+  S2CMessage msg{S2COpcode::CONVEYOR_SET_SPEED, {}};
+  msg.conveyorSetSpeed = speed;
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendHttpBegin(uint32_t reqId, uint16_t port, char const* host, uint8_t hostLen) {
+  S2CMessage msg{S2COpcode::HTTP_BEGIN, {}};
+  msg.httpBegin.reqId = reqId;
+  msg.httpBegin.port = port;
+  msg.httpBegin.len = std::min(static_cast<size_t>(hostLen), sizeof(msg.httpBegin.host));
+  memset(msg.httpBegin.host, 0, sizeof(msg.httpBegin.host));
+  memcpy(msg.httpBegin.host, host, msg.httpBegin.len);
+  pushToClient(std::move(msg));
+}
+
+size_t SimulationServer::sendHttpWrite(uint32_t reqId, char const* buf, size_t len) {
+  S2CMessage msg{S2COpcode::HTTP_WRITE, {}};
+  msg.httpWrite.reqId = reqId;
+  msg.httpWrite.len = std::min(len, sizeof(msg.httpWrite.buf));
+  memset(msg.httpWrite.buf, 0, sizeof(msg.httpWrite.buf));
+  memcpy(msg.httpWrite.buf, buf, msg.httpWrite.len);
+  pushToClient(std::move(msg));
+  return msg.httpWrite.len;
+}
+
+void SimulationServer::sendHttpEnd(uint32_t reqId) {
+  S2CMessage msg{S2COpcode::HTTP_END, {}};
+  msg.httpEnd.reqId = reqId;
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendConfigSchemaReset() {
+  S2CMessage msg{S2COpcode::CONFIG_SCHEMA_RESET, {}};
+  pushToClient(std::move(msg));
 }
