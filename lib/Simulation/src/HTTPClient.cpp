@@ -24,12 +24,7 @@ void HTTPClient::begin(String const& url) {
   int port = portBegin == end ? 80 : std::stoi(std::string(portBegin + 1, pathBegin));
   auto host = std::string(hostBegin, portBegin == end ? pathBegin : portBegin);
 
-  S2CMessage httpMsg{S2COpcode::HTTP_BEGIN, {}};
-  httpMsg.httpBegin.reqId = m_reqId;
-  httpMsg.httpBegin.port = port;
-  httpMsg.httpBegin.len = std::min(host.length(), sizeof(httpMsg.httpBegin.host));
-  memcpy(httpMsg.httpBegin.host, host.c_str(), httpMsg.httpBegin.len);
-  SimServer.pushToClient(std::move(httpMsg));
+  SimServer.sendHttpBegin(m_reqId, port, host.c_str(), host.length());
   m_path = std::string(pathBegin, end);
 }
 
@@ -84,25 +79,14 @@ static int parseStatusCode(std::vector<char> const& res) {
 int HTTPClient::GET() {
   std::vector<char> buf = encodeRequest();
   uint32_t reqId = m_reqId;
-  S2CMessage httpMsg{S2COpcode::HTTP_WRITE, {}};
 
   // Send message chunk by chunk
   size_t offset = 0;
   while (offset < buf.size()) {
-    size_t len = std::min(buf.size() - offset, sizeof(httpMsg.httpWrite.buf));
-    httpMsg.opcode = S2COpcode::HTTP_WRITE;
-    httpMsg.httpWrite.reqId = reqId;
-    httpMsg.httpWrite.len = len;
-    memcpy(httpMsg.httpWrite.buf, buf.data() + offset, len);
-    offset += len;
-    SimServer.pushToClient(std::move(httpMsg));
+    offset += SimServer.sendHttpWrite(reqId, buf.data() + offset, buf.size() - offset);
   }
-
-  httpMsg.opcode = S2COpcode::HTTP_END;
-  httpMsg.httpEnd.reqId = m_reqId;
-  SimServer.pushToClient(std::move(httpMsg));
+  SimServer.sendHttpEnd(reqId);
   std::vector<char> res = awaitResponse(reqId);
-
   return parseStatusCode(res);
 }
 

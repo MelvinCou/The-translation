@@ -22,19 +22,13 @@ void Module_GRBL::Init(TwoWire *wire, uint32_t x_step, uint32_t y_step, uint32_t
 
 void Module_GRBL::unLock() {
   mode = "IDLE";
-
-  S2CMessage stopConveyorMsg{S2COpcode::CONVEYOR_SET_SPEED, {}};
-  stopConveyorMsg.conveyorSetSpeed = 0;
-  SimServer.pushToClient(std::move(stopConveyorMsg));
+  SimServer.sendConveyorSetSpeed(0);
 }
 
 void Module_GRBL::sendGcode(char *c) {
   if (strlen(c) >= 2 && c[0] == 'G' && c[1] == '1') {
     mode = "BUSY";
-
-    S2CMessage setConveyorSpeedMsg{S2COpcode::CONVEYOR_SET_SPEED, {}};
-    setConveyorSpeedMsg.conveyorSetSpeed = atoi(CONVEYOR_MOTOR_SPEED);
-    SimServer.pushToClient(std::move(setConveyorSpeedMsg));
+    SimServer.sendConveyorSetSpeed(atoi(CONVEYOR_MOTOR_SPEED));
   }
 }
 

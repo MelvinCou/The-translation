@@ -239,6 +239,4 @@ void SimulationClient::sendSetButton(uint8_t id, bool pressed) {
   pushToServer(std::move(setBtnAMsg));
 }
 
-void SimulationClient::sendReset() {
-  pushToServer(C2SMessage{C2SOpcode::RESET, {}});
-}
+void SimulationClient::sendReset() { pushToServer(C2SMessage{C2SOpcode::RESET, {}}); }
