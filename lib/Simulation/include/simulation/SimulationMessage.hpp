@@ -10,6 +10,8 @@ enum class C2SOpcode : uint8_t {
   HTTP_BEGIN,
   HTTP_WRITE,
   HTTP_END,
+  CONFIG_SET_VALUE,
+  CONFIG_FULL_READ_END,
   MAX_OPCODE,
 };
 
@@ -40,6 +42,11 @@ struct __attribute__((packed)) C2SMessage {
     HttpBeginPayload httpBegin;
     HttpWritePayload httpWrite;
     HttpEndPayload httpEnd;
+    struct {
+      uint8_t nameLen;
+      uint8_t valueLen;
+      uint8_t buf[255];
+    } configSetValue;
   };
 
   /// @return The total length of the message in bytes (header + payload)
@@ -52,6 +59,8 @@ struct __attribute__((packed)) C2SMessage {
         return 8;
       case C2SOpcode::HTTP_WRITE:
         return 6;
+      case C2SOpcode::CONFIG_SET_VALUE:
+        return 3;
       default:
         return 1;
     }
@@ -67,6 +76,8 @@ struct __attribute__((packed)) C2SMessage {
         return std::min(static_cast<size_t>(httpWrite.len), sizeof(httpWrite.buf));
       case C2SOpcode::HTTP_END:
         return sizeof(httpEnd);
+      case C2SOpcode::CONFIG_SET_VALUE:
+        return std::min(static_cast<size_t>(configSetValue.nameLen + configSetValue.valueLen), sizeof(configSetValue.buf));
       default:
         return 0;
     }
@@ -87,6 +98,10 @@ struct __attribute__((packed)) C2SMessage {
         return "HTTP_WRITE";
       case C2SOpcode::HTTP_END:
         return "HTTP_END";
+      case C2SOpcode::CONFIG_SET_VALUE:
+        return "CONFIG_SET_VALUE";
+      case C2SOpcode::CONFIG_FULL_READ_END:
+        return "CONFIG_FULL_READ_END";
       case C2SOpcode::MAX_OPCODE:
         return "UNKNOWN";
     }
@@ -105,6 +120,11 @@ enum class S2COpcode : uint8_t {
   HTTP_BEGIN,
   HTTP_WRITE,
   HTTP_END,
+  CONFIG_SCHEMA_RESET,
+  CONFIG_SCHEMA_DEFINE,
+  CONFIG_SCHEMA_END_DEFINE,
+  CONFIG_SET_EXPOSED,
+  CONFIG_FULL_READ_BEGIN,
   MAX_OPCODE,
 };
 
@@ -128,7 +148,12 @@ struct __attribute__((packed)) S2CMessage {
     HttpEndPayload httpEnd;
     struct {
       uint8_t type;
+      uint8_t nameLen;
+      uint8_t labelLen;
+      uint8_t defaultLen;
+      uint8_t buf[255];
     } configSchemaDefine;
+    bool configSetExposed;
   };
 
   /// @return The total length of the message in bytes (header + payload)
@@ -143,6 +168,8 @@ struct __attribute__((packed)) S2CMessage {
         return 8;
       case S2COpcode::HTTP_WRITE:
         return 6;
+      case S2COpcode::CONFIG_SCHEMA_DEFINE:
+        return 5;
       default:
         return 1;
     }
@@ -165,6 +192,11 @@ struct __attribute__((packed)) S2CMessage {
         return std::min(static_cast<size_t>(httpWrite.len), sizeof(httpWrite.buf));
       case S2COpcode::HTTP_END:
         return sizeof(httpEnd);
+      case S2COpcode::CONFIG_SCHEMA_DEFINE:
+        return std::min(static_cast<size_t>(configSchemaDefine.nameLen + configSchemaDefine.labelLen + configSchemaDefine.defaultLen),
+                        sizeof(configSchemaDefine.buf));
+      case S2COpcode::CONFIG_SET_EXPOSED:
+        return sizeof(configSetExposed);
       default:
         return 0;
     }
@@ -192,6 +224,16 @@ struct __attribute__((packed)) S2CMessage {
         return "HTTP_WRITE";
       case S2COpcode::HTTP_END:
         return "HTTP_END";
+      case S2COpcode::CONFIG_SCHEMA_RESET:
+        return "CONFIG_SCHEMA_RESET";
+      case S2COpcode::CONFIG_SCHEMA_DEFINE:
+        return "CONFIG_SCHEMA_DEFINE";
+      case S2COpcode::CONFIG_SCHEMA_END_DEFINE:
+        return "CONFIG_SCHEMA_END_DEFINE";
+      case S2COpcode::CONFIG_SET_EXPOSED:
+        return "CONFIG_SET_EXPOSED";
+      case S2COpcode::CONFIG_FULL_READ_BEGIN:
+        return "CONFIG_FULL_READ_BEGIN";
       case S2COpcode::MAX_OPCODE:
         return "UNKNOWN";
     }

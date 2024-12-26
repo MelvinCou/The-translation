@@ -15,7 +15,13 @@
 
 SimulationServer SimServer;
 
-SimulationServer::SimulationServer() : m_state(State::IDLE), m_serverFd(-1), m_clientFd(-1) {}
+SimulationServer::SimulationServer()
+    : m_state(State::IDLE),
+      m_serverFd(-1),
+      m_clientFd(-1),
+      m_hasQueuedMessages(false),
+      m_hasHttpResponses(false),
+      m_hasQueuedConfigRead(false) {}
 
 void SimulationServer::registerButton(int id, std::shared_ptr<std::atomic<bool>> const& isPressed) {
   switch (id) {
@@ -49,6 +55,20 @@ std::vector<char> SimulationServer::popHttpResponse(uint32_t reqId) {
   std::vector<char> res2 = std::move(res->second);
   m_httpResponses.erase(res);
   return res2;
+}
+
+bool SimulationServer::popConfigRead(C2SMessage& msg) {
+  if (!m_hasQueuedConfigRead.load()) return false;
+  std::unique_lock<std::mutex> lock(m_configReadLock);
+
+  bool hasValue = false;
+  if (!m_configReadQueue.empty()) {
+    msg = std::move(m_configReadQueue.front());
+    m_configReadQueue.pop();
+    hasValue = true;
+  }
+  m_hasQueuedConfigRead.store(!m_configReadQueue.empty());
+  return hasValue;
 }
 
 void SimulationServer::run() {
@@ -300,6 +320,10 @@ int SimulationServer::doProcess() {
     m_httpResponses[msg.httpEnd.reqId] = std::move(m_httpPartialResponses[msg.httpEnd.reqId]);
     m_httpPartialResponses.erase(msg.httpEnd.reqId);
     m_hasHttpResponses.store(true);
+  } else if (msg.opcode == C2SOpcode::CONFIG_SET_VALUE || msg.opcode == C2SOpcode::CONFIG_FULL_READ_END) {
+    std::unique_lock<std::mutex> lock(m_configReadLock);
+    m_configReadQueue.emplace(std::move(msg));
+    m_hasQueuedConfigRead.store(true);
   }
   return 0;
 }
@@ -364,5 +388,36 @@ void SimulationServer::sendHttpEnd(uint32_t reqId) {
 
 void SimulationServer::sendConfigSchemaReset() {
   S2CMessage msg{S2COpcode::CONFIG_SCHEMA_RESET, {}};
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendConfigSchemaDefine(uint8_t type, char const* name, char const* label, char const* def) {
+  S2CMessage msg{S2COpcode::CONFIG_SCHEMA_DEFINE, {}};
+  msg.configSchemaDefine.type = type;
+  constexpr size_t fieldMaxLen = 83;
+  msg.configSchemaDefine.nameLen = std::min(strlen(name), fieldMaxLen);
+  msg.configSchemaDefine.labelLen = std::min(strlen(label), fieldMaxLen);
+  msg.configSchemaDefine.defaultLen = std::min(strlen(def), fieldMaxLen);
+  memset(msg.configSchemaDefine.buf, 0, sizeof(msg.configSchemaDefine.buf));
+  memcpy(msg.configSchemaDefine.buf, name, msg.configSchemaDefine.nameLen);
+  memcpy(msg.configSchemaDefine.buf + msg.configSchemaDefine.nameLen, label, msg.configSchemaDefine.labelLen);
+  memcpy(msg.configSchemaDefine.buf + msg.configSchemaDefine.nameLen + msg.configSchemaDefine.labelLen, def,
+         msg.configSchemaDefine.defaultLen);
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendConfigEndDefine() {
+  S2CMessage msg{S2COpcode::CONFIG_SCHEMA_END_DEFINE, {}};
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendConfigSetExposed(bool exposed) {
+  S2CMessage msg{S2COpcode::CONFIG_SET_EXPOSED, {}};
+  msg.configSetExposed = exposed;
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendConfigFullReadBegin() {
+  S2CMessage msg{S2COpcode::CONFIG_FULL_READ_BEGIN, {}};
   pushToClient(std::move(msg));
 }

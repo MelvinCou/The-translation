@@ -6,6 +6,8 @@
 
 using Uri = std::string;
 
+class WebConfig;
+
 class WebServer {
  public:
   virtual ~WebServer();
@@ -16,6 +18,10 @@ class WebServer {
 
   typedef std::function<void(void)> THandlerFunction;
   void on(const Uri &uri, THandlerFunction fn);
+
+ private:
+  WebConfig *m_conf;
+  friend WebConfig;
 };
 
 #endif  // !defined(SIMULATION_WEB_SERVER_HPP)

@@ -247,3 +247,21 @@ void SimulationClient::sendSetButton(uint8_t id, bool pressed) {
 }
 
 void SimulationClient::sendReset() { pushToServer(C2SMessage{C2SOpcode::RESET, {}}); }
+
+void SimulationClient::sendConfigSetValue(char const* name, char const* value) {
+  C2SMessage msg{C2SOpcode::CONFIG_SET_VALUE, {}};
+
+  constexpr size_t fieldMaxLen = 83;
+  msg.configSetValue.nameLen = std::min(strlen(name), fieldMaxLen);
+  msg.configSetValue.valueLen = std::min(strlen(value), fieldMaxLen);
+
+  memset(msg.configSetValue.buf, 0, sizeof(msg.configSetValue.buf));
+  memcpy(msg.configSetValue.buf, name, msg.configSetValue.nameLen);
+  memcpy(msg.configSetValue.buf + msg.configSetValue.nameLen, value, msg.configSetValue.valueLen);
+  pushToServer(std::move(msg));
+}
+
+void SimulationClient::sendConfigFullReadEnd() {
+  C2SMessage msg{C2SOpcode::CONFIG_FULL_READ_END, {}};
+  pushToServer(std::move(msg));
+}

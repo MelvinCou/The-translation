@@ -28,6 +28,8 @@ class SimulationClient {
 
   void sendSetButton(uint8_t id, bool pressed);
   void sendReset();
+  void sendConfigSetValue(char const *name, char const *value);
+  void sendConfigFullReadEnd();
 
  private:
   std::shared_ptr<std::atomic<bool>> m_stopToken;
