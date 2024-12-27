@@ -1,6 +1,12 @@
 #ifndef SIMULATION_MFRC522_I2C_HPP
 #define SIMULATION_MFRC522_I2C_HPP
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+
+#include <atomic>
+#include <mutex>
+
 #include "simulation/Arduino.hpp"
 #include "simulation/Wire.hpp"
 
@@ -80,6 +86,7 @@ class MFRC522_I2C {
   Uid uid;
 
   MFRC522_I2C(byte chipAddress, byte resetPowerDownPin, TwoWire* TwoWireInstance = &Wire);
+  ~MFRC522_I2C();
 
   byte PCD_ReadRegister(byte reg);
 
@@ -88,6 +95,15 @@ class MFRC522_I2C {
 
   bool PICC_IsNewCardPresent();
   bool PICC_ReadCardSerial();
+
+ private:
+  byte m_chipAddress;
+  TwoWire* m_wire;
+  SemaphoreHandle_t m_versionNotification;
+  std::atomic<byte> m_version;
+  std::mutex m_cardLock;
+  std::atomic<bool> m_hasNewCard;
+  Uid m_newUid;
 };
 
 #endif  // !defined(SIMULATION_MFRC522_I2C_HPP)

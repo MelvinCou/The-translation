@@ -2,6 +2,7 @@
 #define SIMULATION_SERVER_HPP
 
 #include <atomic>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <queue>
@@ -15,6 +16,7 @@ class SimulationServer {
   SimulationServer();
 
   void registerButton(int id, std::shared_ptr<std::atomic<bool>> const &isPressed);
+  void registerNfc(I2CAddress addr, std::function<void(C2SMessage const &)> handler);
 
   void pushToClient(S2CMessage &&msg);
   std::vector<char> popHttpResponse(uint32_t reqId);
@@ -37,6 +39,7 @@ class SimulationServer {
   void sendConfigEndDefine();
   void sendConfigSetExposed(bool exposed);
   void sendConfigFullReadBegin();
+  void sendNfcGetVersion(I2CAddress addr);
 
  private:
   // server state machine
@@ -78,6 +81,9 @@ class SimulationServer {
   std::mutex m_configReadLock;
   std::atomic<bool> m_hasQueuedConfigRead;
   std::queue<C2SMessage> m_configReadQueue;
+
+  std::mutex m_nfcLock;
+  std::unordered_map<uint16_t, std::function<void(C2SMessage const &)>> m_nfcHandlers;
 };
 
 #define SIM_SOCKET_PATH "/tmp/the-translation.sock"

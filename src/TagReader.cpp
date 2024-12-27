@@ -7,8 +7,6 @@ void TagReader::begin(TwoWire *wire) {
   m_mfrc522->PCD_DumpVersionToSerial();
 }
 
-// Common code between the two variants of the MFRC522 hardware
-
 TagReader::~TagReader() { delete m_mfrc522; }
 
 bool TagReader::isNewTagPresent() {

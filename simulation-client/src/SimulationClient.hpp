@@ -30,6 +30,8 @@ class SimulationClient {
   void sendReset();
   void sendConfigSetValue(char const *name, char const *value);
   void sendConfigFullReadEnd();
+  void sendNfcSetVersion(I2CAddress addr, uint8_t version);
+  void sendNfcSetCard(I2CAddress addr, char const *card, size_t len);
 
  private:
   std::shared_ptr<std::atomic<bool>> m_stopToken;
