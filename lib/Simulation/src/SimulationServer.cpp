@@ -196,7 +196,12 @@ int SimulationServer::doRead() {
       return transitionTo(State::LISTENING);
     }
     if (numBytes == 0) {
-      continue;
+      char peekBuf;
+      if (recv(m_clientFd, &peekBuf, 1, MSG_PEEK | MSG_NOSIGNAL | MSG_DONTWAIT) == 0) {
+        ESP_LOGW(TAG, "Client disconnected");
+        return transitionTo(State::LISTENING);
+      }
+      return 0;
     }
     offset += numBytes;
     m_buf.insert(m_buf.end(), buf, buf + numBytes);
