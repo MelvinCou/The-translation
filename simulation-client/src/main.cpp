@@ -78,7 +78,7 @@ static void handleEvents(SimulationClient &client, Dimensions const &d, Status &
           writeToLcd(d, status, screen, reinterpret_cast<char const *>(msg.lcdWrite.buf), msg.lcdWrite.len);
           break;
         case S2COpcode::CONVEYOR_SET_SPEED:
-          status.conveyorSpeed = msg.conveyorSetSpeed;
+          if (status.conveyorEnabled) status.conveyorSpeed = msg.conveyorSetSpeed;
           break;
         case S2COpcode::HTTP_BEGIN:
           status.httpProxy.begin(msg.httpBegin.reqId, reinterpret_cast<char const *>(msg.httpBegin.host), msg.httpBegin.len,

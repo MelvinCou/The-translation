@@ -58,6 +58,7 @@ struct Status {
   bool tagReaderEnabled;
   uint8_t tagReaderVersion;
   uint64_t tagReaderUid;
+  bool conveyorEnabled;
 
   explicit Status(Dimensions const &d)
       : btnADown(false),
@@ -70,7 +71,8 @@ struct Status {
         conveyorSpeed(0),
         tagReaderEnabled(true),
         tagReaderVersion(0x88),
-        tagReaderUid(0) {}
+        tagReaderUid(0),
+        conveyorEnabled(true) {}
 
   void partialReset(Dimensions const &d) {
     btnADown = false;
