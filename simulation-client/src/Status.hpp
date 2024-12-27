@@ -59,6 +59,8 @@ struct Status {
   uint8_t tagReaderVersion;
   uint64_t tagReaderUid;
   bool conveyorEnabled;
+  bool sorterEnabled;
+  uint8_t sorterAngle;
 
   explicit Status(Dimensions const &d)
       : btnADown(false),
@@ -72,7 +74,9 @@ struct Status {
         tagReaderEnabled(true),
         tagReaderVersion(0x88),
         tagReaderUid(0),
-        conveyorEnabled(true) {}
+        conveyorEnabled(true),
+        sorterEnabled(true),
+        sorterAngle(0) {}
 
   void partialReset(Dimensions const &d) {
     btnADown = false;
@@ -83,6 +87,7 @@ struct Status {
     cursorY = 0;
     fontSize = 2.f * d.scale;
     conveyorSpeed = 0;
+    sorterAngle = 0;
   }
 };
 

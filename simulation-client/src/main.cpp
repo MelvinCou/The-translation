@@ -109,6 +109,9 @@ static void handleEvents(SimulationClient &client, Dimensions const &d, Status &
         case S2COpcode::NFC_GET_VERSION:
           if (status.tagReaderEnabled) client.sendNfcSetVersion(I2CAddress{0, 0x28}, status.tagReaderVersion);
           break;
+        case S2COpcode::SORTER_SET_ANGLE:
+          if (status.sorterEnabled) status.sorterAngle = msg.sorterSetAngle;
+          break;
         case S2COpcode::MAX_OPCODE:
           break;
       }
@@ -209,16 +212,6 @@ int main() {
 
     // M5 Screen
     DrawTexture(screenTexture, d.m5Screen.x, d.m5Screen.y, WHITE);
-
-    // Connection status
-    bool isConnecting = client->getState() == SimulationClient::State::CONNECTING;
-    char const *stateStr = isConnecting ? "Connecting..." : "Connected";
-    DrawText(stateStr, d.screenWidth - MeasureText(stateStr, 20) - 10, 10, 20, DARKGREEN);
-    DrawCircle(d.m5Frame.x + 20.f * d.scale, d.m5Frame.y + 20.f * d.scale, 7.f * d.scale, isConnecting ? RED : GREEN);
-
-    // Conveyor speed
-    std::string conveyorSpeed = "Conveyor speed: " + std::to_string(status.conveyorSpeed);
-    DrawText(conveyorSpeed.c_str(), d.screenWidth - MeasureText(conveyorSpeed.c_str(), 20) - 10, d.screenHeight - 30, 20, DARKGREEN);
 
     drawButtons(d, status);
 

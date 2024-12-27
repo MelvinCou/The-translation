@@ -40,6 +40,7 @@ class SimulationServer {
   void sendConfigSetExposed(bool exposed);
   void sendConfigFullReadBegin();
   void sendNfcGetVersion(I2CAddress addr);
+  void sendSorterSetAngle(uint32_t angle);
 
  private:
   // server state machine

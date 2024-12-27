@@ -446,3 +446,9 @@ void SimulationServer::sendNfcGetVersion(I2CAddress addr) {
   msg.nfcInitBegin = addr;
   pushToClient(std::move(msg));
 }
+
+void SimulationServer::sendSorterSetAngle(uint32_t angle) {
+  S2CMessage msg{S2COpcode::SORTER_SET_ANGLE, {}};
+  msg.sorterSetAngle = angle;
+  pushToClient(std::move(msg));
+}
