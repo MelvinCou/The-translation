@@ -265,3 +265,20 @@ void SimulationClient::sendConfigFullReadEnd() {
   C2SMessage msg{C2SOpcode::CONFIG_FULL_READ_END, {}};
   pushToServer(std::move(msg));
 }
+
+void SimulationClient::sendNfcSetVersion(I2CAddress addr, uint8_t version) {
+  C2SMessage msg{C2SOpcode::NFC_SET_VERSION, {}};
+  msg.nfcSetVersion.addr = addr;
+  msg.nfcSetVersion.version = version;
+  pushToServer(std::move(msg));
+}
+
+void SimulationClient::sendNfcSetCard(I2CAddress addr, char const* card, size_t len) {
+  C2SMessage msg{C2SOpcode::NFC_SET_CARD, {}};
+  msg.nfcSetCard.addr = addr;
+  msg.nfcSetCard.uidLen = std::min(len, sizeof(msg.nfcSetCard.uid));
+  msg.nfcSetCard.sak = 0;
+  memset(msg.nfcSetCard.uid, 0, sizeof(msg.nfcSetCard.uid));
+  memcpy(msg.nfcSetCard.uid, card, msg.nfcSetCard.uidLen);
+  pushToServer(std::move(msg));
+}

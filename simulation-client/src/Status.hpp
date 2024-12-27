@@ -55,6 +55,9 @@ struct Status {
   float fontSize;
   uint32_t conveyorSpeed;
   HttpProxy httpProxy;
+  bool tagReaderEnabled;
+  uint8_t tagReaderVersion;
+  uint64_t tagReaderUid;
 
   explicit Status(Dimensions const &d)
       : btnADown(false),
@@ -64,7 +67,21 @@ struct Status {
         cursorX(0),
         cursorY(0),
         fontSize(2.f * d.scale),
-        conveyorSpeed(0) {}
+        conveyorSpeed(0),
+        tagReaderEnabled(true),
+        tagReaderVersion(0x88),
+        tagReaderUid(0) {}
+
+  void partialReset(Dimensions const &d) {
+    btnADown = false;
+    btnBDown = false;
+    btnCDown = false;
+    btnRDown = false;
+    cursorX = 0;
+    cursorY = 0;
+    fontSize = 2.f * d.scale;
+    conveyorSpeed = 0;
+  }
 };
 
 #endif  // !defined(STATUS_HPP)

@@ -39,6 +39,11 @@ void SimulationServer::registerButton(int id, std::shared_ptr<std::atomic<bool>>
   }
 }
 
+void SimulationServer::registerNfc(I2CAddress addr, std::function<void(C2SMessage const&)> handler) {
+  std::unique_lock<std::mutex> lock(m_nfcLock);
+  m_nfcHandlers[static_cast<uint16_t>(addr)] = handler;
+}
+
 void SimulationServer::pushToClient(S2CMessage&& msg) {
   std::unique_lock<std::mutex> lock(m_queueLock);
   m_queue.push(std::move(msg));
@@ -329,6 +334,15 @@ int SimulationServer::doProcess() {
     std::unique_lock<std::mutex> lock(m_configReadLock);
     m_configReadQueue.emplace(std::move(msg));
     m_hasQueuedConfigRead.store(true);
+  } else if (msg.opcode == C2SOpcode::NFC_SET_VERSION || msg.opcode == C2SOpcode::NFC_SET_CARD) {
+    std::unique_lock<std::mutex> lock(m_nfcLock);
+    auto handler = m_nfcHandlers.find(static_cast<uint16_t>(msg.nfcSetVersion.addr));
+    if (handler != m_nfcHandlers.end()) {
+      handler->second(msg);
+    } else {
+      ESP_LOGW(TAG, "Received NFC message %s for unknown address %02x:%02x", msg.name(), msg.nfcSetVersion.addr.busId,
+               msg.nfcSetVersion.addr.addr);
+    }
   }
   return 0;
 }
@@ -424,5 +438,11 @@ void SimulationServer::sendConfigSetExposed(bool exposed) {
 
 void SimulationServer::sendConfigFullReadBegin() {
   S2CMessage msg{S2COpcode::CONFIG_FULL_READ_BEGIN, {}};
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendNfcGetVersion(I2CAddress addr) {
+  S2CMessage msg{S2COpcode::NFC_GET_VERSION, {}};
+  msg.nfcInitBegin = addr;
   pushToClient(std::move(msg));
 }

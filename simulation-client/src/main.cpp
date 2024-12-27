@@ -13,7 +13,7 @@
 #include "rlImGui.h"
 
 static void resetStatus(Dimensions const &d, Status &status, Image *screen, Configuration &config) {
-  status = Status(d);
+  status.partialReset(d);
   ImageClearBackground(screen, M5_BG);
   config.loadFromFile(CONFIG_DEFAULT_PATH);
   printf("Reset state!\n");
@@ -106,6 +106,9 @@ static void handleEvents(SimulationClient &client, Dimensions const &d, Status &
         case S2COpcode::CONFIG_FULL_READ_BEGIN:
           config.doFullConfigRead(client);
           break;
+        case S2COpcode::NFC_GET_VERSION:
+          if (status.tagReaderEnabled) client.sendNfcSetVersion(I2CAddress{0, 0x28}, status.tagReaderVersion);
+          break;
         case S2COpcode::MAX_OPCODE:
           break;
       }
@@ -156,7 +159,7 @@ static void drawButtons(Dimensions const &d, Status const &status) {
 
 static void runClient(std::shared_ptr<SimulationClient> const &client) { client->run(); }
 
-void drawGui(SimulationClient &client, Configuration &config);
+void drawGui(SimulationClient &client, Status &status, Configuration &config);
 
 int main() {
   SetTraceLogLevel(LOG_NONE);
@@ -220,7 +223,7 @@ int main() {
     drawButtons(d, status);
 
     rlImGuiBegin();
-    drawGui(*client, config);
+    drawGui(*client, status, config);
     rlImGuiEnd();
 
     EndDrawing();

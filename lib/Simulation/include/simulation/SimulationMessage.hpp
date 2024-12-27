@@ -12,6 +12,8 @@ enum class C2SOpcode : uint8_t {
   HTTP_END,
   CONFIG_SET_VALUE,
   CONFIG_FULL_READ_END,
+  NFC_SET_VERSION,
+  NFC_SET_CARD,
   MAX_OPCODE,
 };
 
@@ -32,6 +34,13 @@ struct __attribute__((packed)) HttpEndPayload {
   uint32_t reqId;
 };
 
+struct __attribute__((packed)) I2CAddress {
+  uint8_t busId;
+  uint8_t addr;
+
+  constexpr explicit operator uint16_t() const { return (busId << 8) | addr; }
+};
+
 struct __attribute__((packed)) C2SMessage {
   C2SOpcode opcode;
   union {
@@ -47,6 +56,16 @@ struct __attribute__((packed)) C2SMessage {
       uint8_t valueLen;
       uint8_t buf[255];
     } configSetValue;
+    struct {
+      I2CAddress addr;
+      uint8_t version;
+    } nfcSetVersion;
+    struct {
+      I2CAddress addr;
+      uint8_t uidLen;
+      uint8_t sak;
+      uint8_t uid[10];
+    } nfcSetCard;
   };
 
   /// @return The total length of the message in bytes (header + payload)
@@ -61,6 +80,8 @@ struct __attribute__((packed)) C2SMessage {
         return 6;
       case C2SOpcode::CONFIG_SET_VALUE:
         return 3;
+      case C2SOpcode::NFC_SET_CARD:
+        return 5;
       default:
         return 1;
     }
@@ -78,6 +99,10 @@ struct __attribute__((packed)) C2SMessage {
         return sizeof(httpEnd);
       case C2SOpcode::CONFIG_SET_VALUE:
         return std::min(static_cast<size_t>(configSetValue.nameLen + configSetValue.valueLen), sizeof(configSetValue.buf));
+      case C2SOpcode::NFC_SET_VERSION:
+        return sizeof(nfcSetVersion);
+      case C2SOpcode::NFC_SET_CARD:
+        return std::min(static_cast<size_t>(nfcSetCard.uidLen), sizeof(nfcSetCard.uid));
       default:
         return 0;
     }
@@ -102,6 +127,10 @@ struct __attribute__((packed)) C2SMessage {
         return "CONFIG_SET_VALUE";
       case C2SOpcode::CONFIG_FULL_READ_END:
         return "CONFIG_FULL_READ_END";
+      case C2SOpcode::NFC_SET_VERSION:
+        return "NFC_SET_VERSION";
+      case C2SOpcode::NFC_SET_CARD:
+        return "NFC_SET_CARD";
       case C2SOpcode::MAX_OPCODE:
         return "UNKNOWN";
     }
@@ -125,6 +154,7 @@ enum class S2COpcode : uint8_t {
   CONFIG_SCHEMA_END_DEFINE,
   CONFIG_SET_EXPOSED,
   CONFIG_FULL_READ_BEGIN,
+  NFC_GET_VERSION,
   MAX_OPCODE,
 };
 
@@ -154,6 +184,7 @@ struct __attribute__((packed)) S2CMessage {
       uint8_t buf[255];
     } configSchemaDefine;
     bool configSetExposed;
+    I2CAddress nfcInitBegin;
   };
 
   /// @return The total length of the message in bytes (header + payload)
@@ -197,6 +228,8 @@ struct __attribute__((packed)) S2CMessage {
                         sizeof(configSchemaDefine.buf));
       case S2COpcode::CONFIG_SET_EXPOSED:
         return sizeof(configSetExposed);
+      case S2COpcode::NFC_GET_VERSION:
+        return sizeof(nfcInitBegin);
       default:
         return 0;
     }
@@ -234,6 +267,8 @@ struct __attribute__((packed)) S2CMessage {
         return "CONFIG_SET_EXPOSED";
       case S2COpcode::CONFIG_FULL_READ_BEGIN:
         return "CONFIG_FULL_READ_BEGIN";
+      case S2COpcode::NFC_GET_VERSION:
+        return "NFC_GET_VERSION";
       case S2COpcode::MAX_OPCODE:
         return "UNKNOWN";
     }

@@ -24,7 +24,19 @@ static void simulationStatusSection(SimulationClient const &client) {
   }
 }
 
-static void m5StackSection(SimulationClient &client) {
+static std::vector<char> uint64ToBigEndianBytes(uint64_t value) {
+  std::vector<char> bytes{0, 0, 0, 0, 0, 0, 0, 0};
+  for (int i = 0; i < 8; ++i) {
+    bytes[7 - i] = static_cast<uint8_t>(value >> (i * 8));
+  }
+  while (bytes.size() > 1 && bytes[0] == 0) {
+    bytes.erase(bytes.begin());
+  }
+  return bytes;
+}
+
+static void hardwareSection(SimulationClient &client, Status &status) {
+  ImGui::SeparatorText("M5Stack");
   ImGui::PushStyleColor(ImGuiCol_Button, static_cast<ImVec4>(ImColor::HSV(0, 0.6f, 0.6f)));
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, static_cast<ImVec4>(ImColor::HSV(0, 0.7f, 0.7f)));
   ImGui::PushStyleColor(ImGuiCol_ButtonActive, static_cast<ImVec4>(ImColor::HSV(0, 0.8f, 0.8f)));
@@ -49,6 +61,20 @@ static void m5StackSection(SimulationClient &client) {
   } else if (ImGui::IsItemClicked()) {
     client.sendSetButton(2, true);
   }
+
+  ImGui::SeparatorText("Tag Reader");
+  ImGui::Checkbox("Enable", &status.tagReaderEnabled);
+  ImGui::InputScalar("Version", ImGuiDataType_U8, &status.tagReaderVersion, nullptr, nullptr, "%x", 0);
+  if (ImGui::Button("Send")) {
+    if (status.tagReaderUid == 0) {
+      client.sendNfcSetCard(I2CAddress{0, 0x28}, "", 0);
+    } else {
+      std::vector<char> uid = uint64ToBigEndianBytes(status.tagReaderUid);
+      client.sendNfcSetCard(I2CAddress{0, 0x28}, uid.data(), uid.size());
+    }
+  }
+  ImGui::SameLine();
+  ImGui::InputScalar("UID", ImGuiDataType_U64, &status.tagReaderUid, nullptr, nullptr, "%x", 0);
 }
 
 static void configurationSection(SimulationClient &client, Configuration &config) {
@@ -110,7 +136,7 @@ static void configurationSection(SimulationClient &client, Configuration &config
   }
 }
 
-void drawGui(SimulationClient &client, Configuration &config) {
+void drawGui(SimulationClient &client, Status &status, Configuration &config) {
   ImGui::ShowDemoWindow(nullptr);
   ImGui::SetNextWindowCollapsed(false, ImGuiCond_Once);
   if (!ImGui::Begin("TheTranslation Control Panel", nullptr, 0)) {
@@ -122,8 +148,8 @@ void drawGui(SimulationClient &client, Configuration &config) {
   if (ImGui::CollapsingHeader("Simulation Status", ImGuiTreeNodeFlags_DefaultOpen)) {
     simulationStatusSection(client);
   }
-  if (ImGui::CollapsingHeader("M5Stack")) {
-    m5StackSection(client);
+  if (ImGui::CollapsingHeader("Hardware")) {
+    hardwareSection(client, status);
   }
   if (ImGui::CollapsingHeader("Configuration")) {
     configurationSection(client, config);
