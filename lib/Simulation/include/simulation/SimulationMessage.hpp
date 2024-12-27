@@ -155,6 +155,7 @@ enum class S2COpcode : uint8_t {
   CONFIG_SET_EXPOSED,
   CONFIG_FULL_READ_BEGIN,
   NFC_GET_VERSION,
+  SORTER_SET_ANGLE,
   MAX_OPCODE,
 };
 
@@ -185,6 +186,7 @@ struct __attribute__((packed)) S2CMessage {
     } configSchemaDefine;
     bool configSetExposed;
     I2CAddress nfcInitBegin;
+    uint32_t sorterSetAngle;
   };
 
   /// @return The total length of the message in bytes (header + payload)
@@ -230,6 +232,8 @@ struct __attribute__((packed)) S2CMessage {
         return sizeof(configSetExposed);
       case S2COpcode::NFC_GET_VERSION:
         return sizeof(nfcInitBegin);
+      case S2COpcode::SORTER_SET_ANGLE:
+        return sizeof(sorterSetAngle);
       default:
         return 0;
     }
@@ -269,6 +273,8 @@ struct __attribute__((packed)) S2CMessage {
         return "CONFIG_FULL_READ_BEGIN";
       case S2COpcode::NFC_GET_VERSION:
         return "NFC_GET_VERSION";
+      case S2COpcode::SORTER_SET_ANGLE:
+        return "SORTER_SET_ANGLE";
       case S2COpcode::MAX_OPCODE:
         return "UNKNOWN";
     }

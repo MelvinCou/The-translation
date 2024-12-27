@@ -83,18 +83,46 @@ static void hardwareSectionTagReader(SimulationClient &client, Status &status) {
   ImGui::PopID();
 }
 
-static void hardwareSectionConveyor(Status &status) {
+static void hardwareSectionEndOfLineReader(SimulationClient &client, Status &status) {
   ImGui::PushID(3);
+  ImGui::SeparatorText("End of Line Reader");
+  ImGui::Checkbox("Enable", &status.tagReaderEnabled);
+  ImGui::InputScalar("Version", ImGuiDataType_U8, &status.tagReaderVersion, nullptr, nullptr, "%x", 0);
+  if (ImGui::Button("Send")) {
+    if (status.tagReaderUid == 0) {
+      client.sendNfcSetCard(I2CAddress{1, 0x28}, "", 0);
+    } else {
+      std::vector<char> uid = uint64ToBigEndianBytes(status.tagReaderUid);
+      client.sendNfcSetCard(I2CAddress{1, 0x28}, uid.data(), uid.size());
+    }
+  }
+  ImGui::SameLine();
+  ImGui::InputScalar("UID", ImGuiDataType_U64, &status.tagReaderUid, nullptr, nullptr, "%x", 0);
+  ImGui::PopID();
+}
+
+static void hardwareSectionConveyor(Status &status) {
+  ImGui::PushID(4);
   ImGui::SeparatorText("Conveyor");
-  ImGui::Checkbox("Conveyor enable", &status.conveyorEnabled);
+  ImGui::Checkbox("Enable", &status.conveyorEnabled);
   ImGui::Text("Speed: %u", status.conveyorSpeed);
+  ImGui::PopID();
+}
+
+static void hardwareSectionSorter(Status &status) {
+  ImGui::PushID(5);
+  ImGui::SeparatorText("Sorter");
+  ImGui::Checkbox("Enable", &status.sorterEnabled);
+  ImGui::Text("Angle: %u", status.sorterAngle);
   ImGui::PopID();
 }
 
 static void hardwareSection(SimulationClient &client, Status &status) {
   hardwareSectionM5Stack(client, status);
   hardwareSectionTagReader(client, status);
+  hardwareSectionEndOfLineReader(client, status);
   hardwareSectionConveyor(status);
+  hardwareSectionSorter(status);
 }
 
 static void configurationSection(SimulationClient &client, Configuration &config) {
