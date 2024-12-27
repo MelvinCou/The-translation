@@ -35,7 +35,8 @@ static std::vector<char> uint64ToBigEndianBytes(uint64_t value) {
   return bytes;
 }
 
-static void hardwareSection(SimulationClient &client, Status &status) {
+static void hardwareSectionM5Stack(SimulationClient &client, Status &status) {
+  ImGui::PushID(1);
   ImGui::SeparatorText("M5Stack");
   ImGui::PushStyleColor(ImGuiCol_Button, static_cast<ImVec4>(ImColor::HSV(0, 0.6f, 0.6f)));
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, static_cast<ImVec4>(ImColor::HSV(0, 0.7f, 0.7f)));
@@ -61,7 +62,11 @@ static void hardwareSection(SimulationClient &client, Status &status) {
   } else if (ImGui::IsItemClicked()) {
     client.sendSetButton(2, true);
   }
+  ImGui::PopID();
+}
 
+static void hardwareSectionTagReader(SimulationClient &client, Status &status) {
+  ImGui::PushID(2);
   ImGui::SeparatorText("Tag Reader");
   ImGui::Checkbox("Enable", &status.tagReaderEnabled);
   ImGui::InputScalar("Version", ImGuiDataType_U8, &status.tagReaderVersion, nullptr, nullptr, "%x", 0);
@@ -75,6 +80,21 @@ static void hardwareSection(SimulationClient &client, Status &status) {
   }
   ImGui::SameLine();
   ImGui::InputScalar("UID", ImGuiDataType_U64, &status.tagReaderUid, nullptr, nullptr, "%x", 0);
+  ImGui::PopID();
+}
+
+static void hardwareSectionConveyor(Status &status) {
+  ImGui::PushID(3);
+  ImGui::SeparatorText("Conveyor");
+  ImGui::Checkbox("Conveyor enable", &status.conveyorEnabled);
+  ImGui::Text("Speed: %u", status.conveyorSpeed);
+  ImGui::PopID();
+}
+
+static void hardwareSection(SimulationClient &client, Status &status) {
+  hardwareSectionM5Stack(client, status);
+  hardwareSectionTagReader(client, status);
+  hardwareSectionConveyor(status);
 }
 
 static void configurationSection(SimulationClient &client, Configuration &config) {
