@@ -64,7 +64,13 @@ void spawnSubTaskInternal(SimpleSubTask subTask, TaskContext *ctx, const char *t
 
 bool interruptibleTaskPause(TickType_t delay) {
   uint32_t notification;
-  bool hasNotification = xTaskNotifyWait(0, REQUEST_SUB_TASK_CANCELLATION_BIT, &notification, delay) == pdTRUE;
+  bool hasNotification = xTaskNotifyWait(0, 0, &notification, delay) == pdTRUE;
+  if (hasNotification) {
+    // For some unknowable reason, the notification is *still* cleared even if I EXPLICITLY tell it not to.
+    // The official docs and even to the FreeRTOS source code says that the notification should be cleared!
+    // I lost an entire day pulling my hair out over this, I give up.
+    xTaskNotify(xTaskGetCurrentTaskHandle(), notification, eSetBits);
+  }
 
   bool shouldStop = hasNotification && notification & REQUEST_SUB_TASK_CANCELLATION_BIT;
   return !shouldStop;
