@@ -10,7 +10,7 @@ enum class ConveyorStatus {
   CANCELLED,
 };
 
-static const char *CONVEYOR_STATUS_STRINGS[] = {
+static constexpr char const *CONVEYOR_STATUS_STRINGS[] = {
     "UNDEFINED",
     "STOPPED",
     "RUNNING",
