@@ -2,7 +2,10 @@
 #define SIMULATION_HTTP_CLIENT_HPP
 
 #include <Arduino.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -69,6 +72,8 @@ typedef enum {
 
 class HTTPClient {
  public:
+  HTTPClient();
+  ~HTTPClient();
   void useHTTP10();
 
   void begin(String const &url);
@@ -79,6 +84,8 @@ class HTTPClient {
   int GET();
   int POST(String body);
 
+  String const &getStream() const;
+
   static String errorToString(int error);
 
  private:
@@ -86,9 +93,17 @@ class HTTPClient {
   std::string m_path;
   std::unordered_map<std::string, std::string> m_headers;
   uint32_t m_reqId = 0;
+  String m_lastResponseBody;
 
-  std::vector<char> encodeRequest();
+  SemaphoreHandle_t m_responseNotification;
+  std::mutex m_responseLock;
+  std::vector<char> m_response;
+  uint32_t m_responseReqId = 0;
+
+  std::vector<char> encodeRequest(char const *verb);
+  void writeFullRequest(std::vector<char> const &buf);
   std::vector<char> awaitResponse(uint32_t reqId);
+  int parseResponse(std::vector<char> const &res);
 };
 
 #endif  // !defined(SIMULATION_HTTP_CLIENT_HPP)

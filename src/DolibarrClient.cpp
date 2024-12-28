@@ -17,7 +17,6 @@ DolibarrClientStatus DolibarrClient::configure(const char* endpoint, const char*
   statusEndpoint += DOLIBARR_ENDPOINT_STATUS;
   client.begin(statusEndpoint);
   client.addHeader(DOLIBARR_HEADER_APIKEY, key);
-  client.addHeader("Accept", "application/json");
 
   int httpCode = client.GET();
 
@@ -62,7 +61,7 @@ DolibarrClientStatus DolibarrClient::sendTag(const int barcode, int& product, in
   status = DolibarrClientStatus::SENDING;
 
   String endpoint = String(m_tagEndpoint);
-  endpoint += barcode;
+  endpoint += std::to_string(barcode).c_str();
   endpoint += DOLIBARR_ENDPOINT_PRODUCTS_END;
 
   client.begin(endpoint);
@@ -75,9 +74,7 @@ DolibarrClientStatus DolibarrClient::sendTag(const int barcode, int& product, in
 
   if (httpCode == HTTP_CODE_OK) {
     JsonDocument doc;
-    // TODO: streams?
-    // DeserializationError error = deserializeJson(doc, client.getStream());
-    DeserializationError error = DeserializationError::NoMemory;
+    DeserializationError error = deserializeJson(doc, client.getStream());
     client.end();
 
     if (error) {

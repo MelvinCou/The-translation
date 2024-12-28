@@ -53,6 +53,7 @@ static void readButtons(TaskContext *ctx) {
 
 static void exposeWebConfigurator(TaskContext *ctx) {
   WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
+
   WiFiClass::mode(WIFI_AP);  // expose access point
   WiFi.softAP(SOFTAP_SSID, SOFTAP_PASSWORD);
 

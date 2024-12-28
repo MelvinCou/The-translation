@@ -212,6 +212,7 @@ static void makeHttpRequests(TaskContext *ctx) {
           M5.Lcd.print(".");
         }
         M5.Lcd.println("Connection successful");
+
       } else if (buttons.BtnC->wasPressed()) {
         M5.Lcd.println("SEND STATUS REQUEST");
         DolibarrClientStatus dolibarrStatus =
