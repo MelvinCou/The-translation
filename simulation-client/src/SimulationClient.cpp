@@ -10,6 +10,8 @@
 #include <iostream>
 #include <thread>
 
+#include "Status.hpp"
+
 #define SIM_SOCKET_PATH "/tmp/the-translation.sock"
 
 SimulationClient::SimulationClient(std::shared_ptr<std::atomic<bool>> const& stopToken)
@@ -280,5 +282,16 @@ void SimulationClient::sendNfcSetCard(I2CAddress addr, char const* card, size_t 
   msg.nfcSetCard.sak = 0;
   memset(msg.nfcSetCard.uid, 0, sizeof(msg.nfcSetCard.uid));
   memcpy(msg.nfcSetCard.uid, card, msg.nfcSetCard.uidLen);
+  pushToServer(std::move(msg));
+}
+
+void SimulationClient::sendWifiSetModeAck() {
+  C2SMessage msg{C2SOpcode::WIFI_SET_MODE_ACK, {}};
+  pushToServer(std::move(msg));
+}
+
+void SimulationClient::sendWifiConnectResponse(wl_status_t status) {
+  C2SMessage msg{C2SOpcode::WIFI_CONNECT_RESPONSE, {}};
+  msg.wifiConnectResponse = status;
   pushToServer(std::move(msg));
 }

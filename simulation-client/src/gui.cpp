@@ -117,12 +117,29 @@ static void hardwareSectionSorter(Status &status) {
   ImGui::PopID();
 }
 
+static void hardwareSectionWifi(Status &status) {
+  ImGui::PushID(6);
+  ImGui::SeparatorText("WIFI Antenna");
+  if (ImGui::Checkbox("Enable", &status.wifiEnabled)) {
+    status.httpProxy.setEnabled(status.wifiEnabled);
+  }
+  size_t wifiModeIndex = std::min(static_cast<size_t>(status.wifiMode), sizeof(WIFI_MODE_NAMES) / sizeof(WIFI_MODE_NAMES[0]) - 1);
+  size_t wifiStatusIndex = std::min(static_cast<size_t>(status.wifiStatus), sizeof(WL_STATUS_NAMES) / sizeof(WL_STATUS_NAMES[0]) - 1);
+  ImGui::Text("Mode: %s", WIFI_MODE_NAMES[wifiModeIndex]);
+  ImGui::SameLine();
+  ImGui::Text("Status: %s", WL_STATUS_NAMES[wifiStatusIndex]);
+  ImGui::InputTextWithHint("Expected SSID", "<empty>", status.wifiSsid, sizeof(status.wifiSsid), 0);
+  ImGui::InputTextWithHint("Expected Pass", "<empty>", status.wifiPass, sizeof(status.wifiPass), ImGuiInputTextFlags_Password);
+  ImGui::PopID();
+}
+
 static void hardwareSection(SimulationClient &client, Status &status) {
   hardwareSectionM5Stack(client, status);
   hardwareSectionTagReader(client, status);
   hardwareSectionEndOfLineReader(client, status);
   hardwareSectionConveyor(status);
   hardwareSectionSorter(status);
+  hardwareSectionWifi(status);
 }
 
 static void configurationSection(SimulationClient &client, Configuration &config) {
@@ -144,7 +161,7 @@ static void configurationSection(SimulationClient &client, Configuration &config
     config.applyChanges(client);
   }
 
-  int i = 0;
+  int i = 50;
   for (auto &field : config.getFields()) {
     bool isDefault = field.isDefault();
 

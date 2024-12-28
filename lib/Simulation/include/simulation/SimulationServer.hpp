@@ -17,6 +17,8 @@ class SimulationServer {
 
   void registerButton(int id, std::shared_ptr<std::atomic<bool>> const &isPressed);
   void registerNfc(I2CAddress addr, std::function<void(C2SMessage const &)> handler);
+  void registerWifiOnSetModeAck(std::function<void()> handler);
+  void registerWifiOnConnectResponse(std::function<void(int)> handler);
 
   void pushToClient(S2CMessage &&msg);
   std::vector<char> popHttpResponse(uint32_t reqId);
@@ -41,6 +43,8 @@ class SimulationServer {
   void sendConfigFullReadBegin();
   void sendNfcGetVersion(I2CAddress addr);
   void sendSorterSetAngle(uint32_t angle);
+  void sendWifiSetMode(int mode);
+  void sendWifiConnect(char const *ssid, char const *pass);
 
  private:
   // server state machine
@@ -85,6 +89,9 @@ class SimulationServer {
 
   std::mutex m_nfcLock;
   std::unordered_map<uint16_t, std::function<void(C2SMessage const &)>> m_nfcHandlers;
+
+  std::function<void()> m_wifiOnSetModeAckHandler;
+  std::function<void(int)> m_wifiOnConnectResponseHandler;
 };
 
 #define SIM_SOCKET_PATH "/tmp/the-translation.sock"

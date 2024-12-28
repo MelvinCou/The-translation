@@ -5,6 +5,7 @@
 
 #include "simulation/Arduino.hpp"
 #include "simulation/WebServer.hpp"
+#include "simulation/WiFi.hpp"
 
 #define INPUTTEXT "0"
 #define INPUTPASSWORD "1"

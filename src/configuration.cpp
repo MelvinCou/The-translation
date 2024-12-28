@@ -21,9 +21,7 @@ static void printHeader() {
 
 static void printIP() {
   M5.Lcd.print("Server IP=");
-#ifndef ENV_SIMULATION
   M5.Lcd.println(WiFi.softAPIP().toString());
-#endif
 }
 
 static void readButtons(TaskContext *ctx) {
@@ -55,10 +53,8 @@ static void readButtons(TaskContext *ctx) {
 
 static void exposeWebConfigurator(TaskContext *ctx) {
   WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
-#ifndef ENV_SIMULATION
   WiFiClass::mode(WIFI_AP);  // expose access point
   WiFi.softAP(SOFTAP_SSID, SOFTAP_PASSWORD);
-#endif
 
   printIP();
 

@@ -14,6 +14,8 @@ enum class C2SOpcode : uint8_t {
   CONFIG_FULL_READ_END,
   NFC_SET_VERSION,
   NFC_SET_CARD,
+  WIFI_SET_MODE_ACK,
+  WIFI_CONNECT_RESPONSE,
   MAX_OPCODE,
 };
 
@@ -66,6 +68,7 @@ struct __attribute__((packed)) C2SMessage {
       uint8_t sak;
       uint8_t uid[10];
     } nfcSetCard;
+    int wifiConnectResponse;
   };
 
   /// @return The total length of the message in bytes (header + payload)
@@ -103,6 +106,8 @@ struct __attribute__((packed)) C2SMessage {
         return sizeof(nfcSetVersion);
       case C2SOpcode::NFC_SET_CARD:
         return std::min(static_cast<size_t>(nfcSetCard.uidLen), sizeof(nfcSetCard.uid));
+      case C2SOpcode::WIFI_CONNECT_RESPONSE:
+        return sizeof(wifiConnectResponse);
       default:
         return 0;
     }
@@ -131,6 +136,10 @@ struct __attribute__((packed)) C2SMessage {
         return "NFC_SET_VERSION";
       case C2SOpcode::NFC_SET_CARD:
         return "NFC_SET_CARD";
+      case C2SOpcode::WIFI_SET_MODE_ACK:
+        return "WIFI_SET_MODE_ACK";
+      case C2SOpcode::WIFI_CONNECT_RESPONSE:
+        return "WIFI_CONNECT_RESPONSE";
       case C2SOpcode::MAX_OPCODE:
         return "UNKNOWN";
     }
@@ -156,6 +165,8 @@ enum class S2COpcode : uint8_t {
   CONFIG_FULL_READ_BEGIN,
   NFC_GET_VERSION,
   SORTER_SET_ANGLE,
+  WIFI_SET_MODE,
+  WIFI_CONNECT,
   MAX_OPCODE,
 };
 
@@ -187,6 +198,12 @@ struct __attribute__((packed)) S2CMessage {
     bool configSetExposed;
     I2CAddress nfcInitBegin;
     uint32_t sorterSetAngle;
+    int wifiSetMode;
+    struct {
+      uint8_t ssidLen;
+      uint8_t passLen;
+      uint8_t buf[255];
+    } wifiConnect;
   };
 
   /// @return The total length of the message in bytes (header + payload)
@@ -203,6 +220,8 @@ struct __attribute__((packed)) S2CMessage {
         return 6;
       case S2COpcode::CONFIG_SCHEMA_DEFINE:
         return 5;
+      case S2COpcode::WIFI_CONNECT:
+        return 3;
       default:
         return 1;
     }
@@ -234,6 +253,10 @@ struct __attribute__((packed)) S2CMessage {
         return sizeof(nfcInitBegin);
       case S2COpcode::SORTER_SET_ANGLE:
         return sizeof(sorterSetAngle);
+      case S2COpcode::WIFI_SET_MODE:
+        return sizeof(wifiSetMode);
+      case S2COpcode::WIFI_CONNECT:
+        return std::min(static_cast<size_t>(wifiConnect.ssidLen + wifiConnect.passLen), sizeof(wifiConnect.buf));
       default:
         return 0;
     }
@@ -275,6 +298,10 @@ struct __attribute__((packed)) S2CMessage {
         return "NFC_GET_VERSION";
       case S2COpcode::SORTER_SET_ANGLE:
         return "SORTER_SET_ANGLE";
+      case S2COpcode::WIFI_SET_MODE:
+        return "WIFI_SET_MODE";
+      case S2COpcode::WIFI_CONNECT:
+        return "WIFI_CONNECT";
       case S2COpcode::MAX_OPCODE:
         return "UNKNOWN";
     }

@@ -41,6 +41,24 @@ static void writeToLcd(Dimensions const &d, Status &status, Image *screen, char 
   }
 }
 
+static void onWifiConnect(SimulationClient &client, Status &status, std::string const &ssid, std::string const &pass) {
+  if (!status.wifiEnabled) {
+    fprintf(stderr, "Ignoring WiFi connection attempt: WiFi is disabled\n");
+  } else if (ssid != status.wifiSsid) {
+    fprintf(stderr, "Blocking WiFi connection attempt: SSID mismatch: expected [%s], got [%s]\n", status.wifiSsid, ssid.c_str());
+    status.wifiStatus = WL_NO_SSID_AVAIL;
+    client.sendWifiConnectResponse(WL_NO_SSID_AVAIL);
+  } else if (pass != status.wifiPass) {
+    fprintf(stderr, "Blocking WiFi connection attempt: Password mismatch: expected [%s], got [%s]\n", status.wifiPass, pass.c_str());
+    status.wifiStatus = WL_NO_SSID_AVAIL;
+    client.sendWifiConnectResponse(WL_NO_SSID_AVAIL);
+  } else {
+    printf("Accepting WiFi connection attempt\n");
+    status.wifiStatus = WL_CONNECTED;
+    client.sendWifiConnectResponse(WL_CONNECTED);
+  }
+}
+
 static void handleEvents(SimulationClient &client, Dimensions const &d, Status &status, Configuration &config, Image *screen) {
   if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
     Vector2 mousePos = GetMousePosition();
@@ -111,6 +129,17 @@ static void handleEvents(SimulationClient &client, Dimensions const &d, Status &
           break;
         case S2COpcode::SORTER_SET_ANGLE:
           if (status.sorterEnabled) status.sorterAngle = msg.sorterSetAngle;
+          break;
+        case S2COpcode::WIFI_SET_MODE:
+          if (status.wifiEnabled) {
+            status.wifiMode = static_cast<wifi_mode_t>(msg.wifiSetMode);
+            client.sendWifiSetModeAck();
+          }
+          break;
+        case S2COpcode::WIFI_CONNECT:
+          onWifiConnect(
+              client, status, std::string(reinterpret_cast<char const *>(msg.wifiConnect.buf), msg.wifiConnect.ssidLen),
+              std::string(reinterpret_cast<char const *>(msg.wifiConnect.buf + msg.wifiConnect.ssidLen), msg.wifiConnect.passLen));
           break;
         case S2COpcode::MAX_OPCODE:
           break;
