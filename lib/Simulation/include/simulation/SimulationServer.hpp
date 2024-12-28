@@ -19,9 +19,9 @@ class SimulationServer {
   void registerNfc(I2CAddress addr, std::function<void(C2SMessage const &)> handler);
   void registerWifiOnSetModeAck(std::function<void()> handler);
   void registerWifiOnConnectResponse(std::function<void(int)> handler);
+  void registerHttpOnResponse(std::function<void(uint32_t, std::vector<char>)> handler);
 
   void pushToClient(S2CMessage &&msg);
-  std::vector<char> popHttpResponse(uint32_t reqId);
   bool popConfigRead(C2SMessage &msg);
 
   void run();
@@ -78,10 +78,7 @@ class SimulationServer {
   std::atomic<bool> m_hasQueuedMessages;
   std::queue<S2CMessage> m_queue;
 
-  std::mutex m_httpResLock;
-  std::atomic<bool> m_hasHttpResponses;
   std::unordered_map<uint32_t, std::vector<char>> m_httpPartialResponses;
-  std::unordered_map<uint32_t, std::vector<char>> m_httpResponses;
 
   std::mutex m_configReadLock;
   std::atomic<bool> m_hasQueuedConfigRead;
@@ -92,6 +89,7 @@ class SimulationServer {
 
   std::function<void()> m_wifiOnSetModeAckHandler;
   std::function<void(int)> m_wifiOnConnectResponseHandler;
+  std::function<void(uint32_t, std::vector<char>)> m_httpOnResponseHandler;
 };
 
 #define SIM_SOCKET_PATH "/tmp/the-translation.sock"

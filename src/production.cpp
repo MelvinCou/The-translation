@@ -180,8 +180,8 @@ void startProductionMode(TaskContext *ctx) {
   spawnSubTask(readButtons, ctx);
   spawnSubTask(readTagsAndRunConveyor, ctx);
   spawnSubTask(testTagReader, ctx);
-  spawnSubTask(sortPackages, ctx);
   spawnSubTask(makeHttpRequests, ctx);
+  spawnSubTask(sortPackages, ctx);
 
   M5.Lcd.clearDisplay();
   M5.Lcd.setCursor(0, 0);

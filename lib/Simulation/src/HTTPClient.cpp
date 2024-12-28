@@ -8,6 +8,19 @@
 #include <algorithm>
 #include <taskUtil.hpp>
 
+HTTPClient::HTTPClient() : m_responseNotification(xSemaphoreCreateBinary()) {
+  SimServer.registerHttpOnResponse([this](uint32_t reqId, std::vector<char> res) {
+    {
+      std::unique_lock<std::mutex> lock(m_responseLock);
+      m_response = res;
+      m_responseReqId = reqId;
+    }
+    xSemaphoreGive(m_responseNotification);
+  });
+}
+
+HTTPClient::~HTTPClient() { vSemaphoreDelete(m_responseNotification); }
+
 void HTTPClient::useHTTP10() { m_useHTTP10 = true; }
 
 static bool checkWifi() {
@@ -39,6 +52,7 @@ void HTTPClient::begin(String const& url) {
   int port = portBegin == end ? 80 : std::stoi(std::string(portBegin + 1, pathBegin));
   auto host = std::string(hostBegin, portBegin == end ? pathBegin : portBegin);
 
+  m_lastResponseBody.clear();
   SimServer.sendHttpBegin(m_reqId, port, host.c_str(), host.length());
   m_path = std::string(pathBegin, end);
 }
@@ -53,14 +67,14 @@ void HTTPClient::addHeader(String const& name, String const& value) {
   m_headers[name] = value;
 }
 
-std::vector<char> HTTPClient::encodeRequest() {
+std::vector<char> HTTPClient::encodeRequest(char const* verb) {
   std::vector<char> buf;
-  constexpr auto verb = "GET ";
   const auto httpVersion = m_useHTTP10 ? " HTTP/1.0\r\n" : " HTTP/1.1\r\n";
 
   // HTTP Request line
-  buf.reserve(strlen(verb) + m_path.length() + strlen(httpVersion));
+  buf.reserve(strlen(verb) + 1 + m_path.length() + strlen(httpVersion));
   buf.insert(buf.end(), verb, verb + strlen(verb));
+  buf.push_back(' ');
   buf.insert(buf.end(), m_path.begin(), m_path.end());
   buf.insert(buf.end(), httpVersion, httpVersion + strlen(httpVersion));
 
@@ -84,18 +98,7 @@ std::vector<char> HTTPClient::encodeRequest() {
   return buf;
 }
 
-static int parseStatusCode(std::vector<char> const& res) {
-  if (res.size() < 12) {
-    return HTTP_CODE_NOT_FOUND;
-  }
-  return std::stoi(std::string(res.begin() + 9, res.begin() + 12));
-}
-
-int HTTPClient::GET() {
-  if (!checkWifi()) {
-    return -1;
-  }
-  std::vector<char> buf = encodeRequest();
+void HTTPClient::writeFullRequest(std::vector<char> const& buf) {
   uint32_t reqId = m_reqId;
 
   // Send message chunk by chunk
@@ -103,27 +106,64 @@ int HTTPClient::GET() {
   while (offset < buf.size()) {
     offset += SimServer.sendHttpWrite(reqId, buf.data() + offset, buf.size() - offset);
   }
-  SimServer.sendHttpEnd(reqId);
-  std::vector<char> res = awaitResponse(reqId);
-  return parseStatusCode(res);
+}
+
+int HTTPClient::GET() {
+  if (!checkWifi()) {
+    return -1;
+  }
+  std::vector<char> const buf = encodeRequest("GET");
+  writeFullRequest(buf);
+  SimServer.sendHttpEnd(m_reqId);
+  std::vector<char> const res = awaitResponse(m_reqId);
+  return parseResponse(res);
 }
 
 int HTTPClient::POST(String body) {
   if (!checkWifi()) {
     return -1;
   }
-  return HTTP_CODE_OK;
+  m_headers["Content-Length"] = std::to_string(body.length());
+  std::vector<char> buf = encodeRequest("POST");
+  buf.insert(buf.end(), body.begin(), body.end());
+  writeFullRequest(buf);
+  SimServer.sendHttpEnd(m_reqId);
+  std::vector<char> const res = awaitResponse(m_reqId);
+  return parseResponse(res);
 }
+
+String const& HTTPClient::getStream() const { return m_lastResponseBody; }
 
 String HTTPClient::errorToString([[maybe_unused]] int error) { return "(SOME HTTP ERROR)"; }
 
 std::vector<char> HTTPClient::awaitResponse(uint32_t reqId) {
   std::vector<char> res;
 
-  while ((res = SimServer.popHttpResponse(reqId)).empty()) {
-    if (!interruptibleTaskPauseMs(50)) {
-      return {};
+  if (xSemaphoreTake(m_responseNotification, pdMS_TO_TICKS(3000)) == pdTRUE) {
+    std::unique_lock<std::mutex> lock(m_responseLock);
+    if (reqId == m_responseReqId) {
+      std::swap(res, m_response);
+      m_response.clear();
+      m_responseReqId = 0;
+    } else {
+      ESP_LOGE("CLIENT", "Unexpected response for request: expected %u, got %u", reqId, m_responseReqId);
     }
+  } else {
+    ESP_LOGE("CLIENT", "HTTP response timeout after 3s");
   }
   return res;
+}
+
+int HTTPClient::parseResponse(std::vector<char> const& res) {
+  if (res.size() < 12) {
+    return HTTP_CODE_NOT_FOUND;
+  }
+  int code = std::stoi(std::string(res.begin() + 9, res.begin() + 12));
+  auto it = std::search(res.begin(), res.end(), std::begin("\r\n\r\n"), std::end("\r\n\r\n"));
+  if (it != res.end()) {
+    m_lastResponseBody = std::string(it + 4, res.end());
+  } else {
+    m_lastResponseBody.clear();
+  }
+  return code;
 }

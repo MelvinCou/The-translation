@@ -20,10 +20,10 @@ SimulationServer::SimulationServer()
       m_serverFd(-1),
       m_clientFd(-1),
       m_hasQueuedMessages(false),
-      m_hasHttpResponses(false),
       m_hasQueuedConfigRead(false),
       m_wifiOnSetModeAckHandler([] {}),
-      m_wifiOnConnectResponseHandler([](int) {}) {}
+      m_wifiOnConnectResponseHandler([](int) {}),
+      m_httpOnResponseHandler([](uint32_t, std::vector<char>) {}) {}
 
 void SimulationServer::registerButton(int id, std::shared_ptr<std::atomic<bool>> const& isPressed) {
   switch (id) {
@@ -50,22 +50,15 @@ void SimulationServer::registerWifiOnSetModeAck(std::function<void()> handler) {
 
 void SimulationServer::registerWifiOnConnectResponse(std::function<void(int)> handler) { m_wifiOnConnectResponseHandler = handler; }
 
+void SimulationServer::registerHttpOnResponse(std::function<void(uint32_t, std::vector<char>)> handler) {
+  m_httpOnResponseHandler = handler;
+}
+
 void SimulationServer::pushToClient(S2CMessage&& msg) {
   std::unique_lock<std::mutex> lock(m_queueLock);
   m_queue.push(std::move(msg));
   lock.unlock();
   m_hasQueuedMessages.store(true);
-}
-
-std::vector<char> SimulationServer::popHttpResponse(uint32_t reqId) {
-  if (!m_hasHttpResponses.load()) return {};
-  std::unique_lock<std::mutex> lock(m_httpResLock);
-  auto res = m_httpResponses.find(reqId);
-  m_hasHttpResponses.store(!m_httpResponses.empty());
-  if (res == m_httpResponses.end()) return {};
-  std::vector<char> res2 = std::move(res->second);
-  m_httpResponses.erase(res);
-  return res2;
 }
 
 bool SimulationServer::popConfigRead(C2SMessage& msg) {
@@ -332,10 +325,8 @@ int SimulationServer::doProcess() {
     }
     res->second.insert(res->second.end(), msg.httpWrite.buf, msg.httpWrite.buf + msg.httpWrite.len);
   } else if (msg.opcode == C2SOpcode::HTTP_END) {
-    std::unique_lock<std::mutex> lock(m_httpResLock);
-    m_httpResponses[msg.httpEnd.reqId] = std::move(m_httpPartialResponses[msg.httpEnd.reqId]);
+    m_httpOnResponseHandler(msg.httpEnd.reqId, m_httpPartialResponses[msg.httpEnd.reqId]);
     m_httpPartialResponses.erase(msg.httpEnd.reqId);
-    m_hasHttpResponses.store(true);
   } else if (msg.opcode == C2SOpcode::CONFIG_SET_VALUE || msg.opcode == C2SOpcode::CONFIG_FULL_READ_END) {
     std::unique_lock<std::mutex> lock(m_configReadLock);
     m_configReadQueue.emplace(std::move(msg));
