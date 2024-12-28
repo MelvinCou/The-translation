@@ -21,7 +21,9 @@ SimulationServer::SimulationServer()
       m_clientFd(-1),
       m_hasQueuedMessages(false),
       m_hasHttpResponses(false),
-      m_hasQueuedConfigRead(false) {}
+      m_hasQueuedConfigRead(false),
+      m_wifiOnSetModeAckHandler([] {}),
+      m_wifiOnConnectResponseHandler([](int) {}) {}
 
 void SimulationServer::registerButton(int id, std::shared_ptr<std::atomic<bool>> const& isPressed) {
   switch (id) {
@@ -43,6 +45,10 @@ void SimulationServer::registerNfc(I2CAddress addr, std::function<void(C2SMessag
   std::unique_lock<std::mutex> lock(m_nfcLock);
   m_nfcHandlers[static_cast<uint16_t>(addr)] = handler;
 }
+
+void SimulationServer::registerWifiOnSetModeAck(std::function<void()> handler) { m_wifiOnSetModeAckHandler = handler; }
+
+void SimulationServer::registerWifiOnConnectResponse(std::function<void(int)> handler) { m_wifiOnConnectResponseHandler = handler; }
 
 void SimulationServer::pushToClient(S2CMessage&& msg) {
   std::unique_lock<std::mutex> lock(m_queueLock);
@@ -343,6 +349,10 @@ int SimulationServer::doProcess() {
       ESP_LOGW(TAG, "Received NFC message %s for unknown address %02x:%02x", msg.name(), msg.nfcSetVersion.addr.busId,
                msg.nfcSetVersion.addr.addr);
     }
+  } else if (msg.opcode == C2SOpcode::WIFI_SET_MODE_ACK) {
+    m_wifiOnSetModeAckHandler();
+  } else if (msg.opcode == C2SOpcode::WIFI_CONNECT_RESPONSE) {
+    m_wifiOnConnectResponseHandler(msg.wifiConnectResponse);
   }
   return 0;
 }
@@ -450,5 +460,23 @@ void SimulationServer::sendNfcGetVersion(I2CAddress addr) {
 void SimulationServer::sendSorterSetAngle(uint32_t angle) {
   S2CMessage msg{S2COpcode::SORTER_SET_ANGLE, {}};
   msg.sorterSetAngle = angle;
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendWifiSetMode(int mode) {
+  S2CMessage msg{S2COpcode::WIFI_SET_MODE, {}};
+  msg.wifiSetMode = mode;
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendWifiConnect(char const* ssid, char const* pass) {
+  S2CMessage msg{S2COpcode::WIFI_CONNECT, {}};
+  constexpr size_t fieldMaxLen = 128;
+  msg.wifiConnect.ssidLen = std::min(strlen(ssid), fieldMaxLen);
+  msg.wifiConnect.passLen = std::min(strlen(pass), fieldMaxLen);
+  memset(msg.wifiConnect.buf, 0, sizeof(msg.wifiConnect.buf));
+  memcpy(msg.wifiConnect.buf, ssid, msg.wifiConnect.ssidLen);
+  memcpy(msg.wifiConnect.buf + msg.wifiConnect.ssidLen, pass, msg.wifiConnect.passLen);
+  ESP_LOGW(TAG, "Sending wifi connect message: [%s] [%s]", ssid, pass);
   pushToClient(std::move(msg));
 }

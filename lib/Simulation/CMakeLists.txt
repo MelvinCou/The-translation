@@ -15,6 +15,7 @@ set(SOURCES
     src/watchdog.cpp
     src/WebConfig.cpp
     src/WebServer.cpp
+    src/WiFi.cpp
     src/Wire.cpp
 )
 

@@ -5,4 +5,6 @@
 
 using String = std::string;
 
+static const String emptyString;
+
 #endif  // !defined(SIMULATION_STRING_HPP)

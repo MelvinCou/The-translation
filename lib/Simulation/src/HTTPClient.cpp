@@ -4,16 +4,31 @@
 
 #include <SimulationMessage.hpp>
 #include <SimulationServer.hpp>
+#include <WiFi.hpp>
 #include <algorithm>
 #include <taskUtil.hpp>
 
 void HTTPClient::useHTTP10() { m_useHTTP10 = true; }
+
+static bool checkWifi() {
+  if (WiFiClass::getMode() != WIFI_MODE_STA) {
+    ESP_LOGE("CLIENT", "WiFi not in STA mode, cannot send HTTP requests, current: %d", static_cast<int>(WiFiClass::getMode()));
+    return false;
+  }
+  if (WiFiClass::status() != WL_CONNECTED) {
+    ESP_LOGE("CLIENT", "WiFi not connected, cannot send HTTP requests, current: %d", static_cast<int>(WiFiClass::status()));
+    return false;
+  }
+  return true;
+}
 
 void HTTPClient::begin(String const& url) {
   m_reqId++;
 
   if (url.find("http://") != 0) {
     ESP_LOGE("CLIENT", "only http:// scheme is supported");
+    return;
+  } else if (!checkWifi()) {
     return;
   }
   auto const end = url.cend();
@@ -77,6 +92,9 @@ static int parseStatusCode(std::vector<char> const& res) {
 }
 
 int HTTPClient::GET() {
+  if (!checkWifi()) {
+    return -1;
+  }
   std::vector<char> buf = encodeRequest();
   uint32_t reqId = m_reqId;
 
@@ -90,7 +108,12 @@ int HTTPClient::GET() {
   return parseStatusCode(res);
 }
 
-int HTTPClient::POST(String body) { return HTTP_CODE_OK; }
+int HTTPClient::POST(String body) {
+  if (!checkWifi()) {
+    return -1;
+  }
+  return HTTP_CODE_OK;
+}
 
 String HTTPClient::errorToString([[maybe_unused]] int error) { return "(SOME HTTP ERROR)"; }
 

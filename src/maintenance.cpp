@@ -200,7 +200,6 @@ static void makeHttpRequests(TaskContext *ctx) {
       buttons.update();
       if (buttons.BtnA->wasPressed()) {
         LOG_INFO("\n[HTTP] Starting!\n");
-#ifndef ENV_SIMULATION
         WiFiClass::mode(WIFI_STA);  // connect to access point
         WiFi.begin(webConfigurator.getApSsid(), webConfigurator.getApPassword());
         M5.Lcd.println("Connecting to WIFI");
@@ -213,8 +212,6 @@ static void makeHttpRequests(TaskContext *ctx) {
           M5.Lcd.print(".");
         }
         M5.Lcd.println("Connection successful");
-#endif
-
       } else if (buttons.BtnC->wasPressed()) {
         M5.Lcd.println("SEND STATUS REQUEST");
         DolibarrClientStatus dolibarrStatus =

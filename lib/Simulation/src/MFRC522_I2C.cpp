@@ -1,5 +1,6 @@
 #include "simulation/MFRC522_I2C.hpp"
 
+#include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 

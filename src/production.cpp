@@ -1,10 +1,7 @@
-#include <M5Stack.h>
-
-#ifndef ENV_SIMULATION
 #include <HTTPClient.h>
+#include <M5Stack.h>
 #include <WiFi.h>
 #include <freertos/task.h>
-#endif  // !defined(ENV_SIMULATION)
 
 #include <OperationMode.hpp>
 #include <TaskContext.hpp>
@@ -134,7 +131,6 @@ static void makeHttpRequests(TaskContext *ctx) {
   DolibarrClient &dolibarrClient = ctx->getHardware()->dolibarrClient;
   auto values = ctx->getSharedValues<ProductionValues>();
 
-#ifndef ENV_SIMULATION
   WiFiClass::mode(WIFI_STA);  // connect to access point
   WiFi.begin(webConfigurator.getApSsid(), webConfigurator.getApPassword());
   LOG_INFO("[HTTP] Connecting to WIFI");
@@ -147,7 +143,6 @@ static void makeHttpRequests(TaskContext *ctx) {
     LOG_INFO(".");
   }
   LOG_INFO("\n[HTTP] Connected!\n");
-#endif  // !defined(ENV_SIMULATION)
 
   int product = 0, warehouse = 0, tag = 0;
   bool newTag = false;

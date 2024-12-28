@@ -4,6 +4,7 @@
 #include <raylib.h>
 
 #include "HttpProxy.hpp"
+#include "WiFiEnums.hpp"
 
 #define M5_BG \
   CLITERAL(Color) { 34, 34, 34, 255 }
@@ -61,6 +62,11 @@ struct Status {
   bool conveyorEnabled;
   bool sorterEnabled;
   uint8_t sorterAngle;
+  bool wifiEnabled;
+  wifi_mode_t wifiMode;
+  wl_status_t wifiStatus;
+  char wifiSsid[32];
+  char wifiPass[32];
 
   explicit Status(Dimensions const &d)
       : btnADown(false),
@@ -76,7 +82,12 @@ struct Status {
         tagReaderUid(0),
         conveyorEnabled(true),
         sorterEnabled(true),
-        sorterAngle(0) {}
+        sorterAngle(0),
+        wifiEnabled(true),
+        wifiMode(WIFI_MODE_NULL),
+        wifiStatus(WL_IDLE_STATUS),
+        wifiSsid("Fake WiFi"),
+        wifiPass("azerty") {}
 
   void partialReset(Dimensions const &d) {
     btnADown = false;
@@ -88,6 +99,8 @@ struct Status {
     fontSize = 2.f * d.scale;
     conveyorSpeed = 0;
     sorterAngle = 0;
+    wifiMode = WIFI_MODE_NULL;
+    wifiStatus = WL_IDLE_STATUS;
   }
 };
 

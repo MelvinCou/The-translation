@@ -14,6 +14,7 @@ class HttpProxy {
   void begin(uint32_t reqId, char const* host, size_t hostLen, uint16_t port);
   void append(uint32_t reqId, char const* buf, size_t len);
   void end(uint32_t reqId, SimulationClient& client);
+  void setEnabled(bool enabled);
 
  private:
   struct Request {
@@ -23,6 +24,7 @@ class HttpProxy {
     std::vector<char> data;
   };
   std::unordered_map<uint32_t, Request> m_partialHttpRequests;
+  bool m_enabled = true;
 
   std::vector<char> sendRequest(Request const& req);
   void sendResponse(Request const& req, std::vector<char> const& res, SimulationClient& client);

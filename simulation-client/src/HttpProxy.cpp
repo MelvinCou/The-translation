@@ -25,6 +25,12 @@ void HttpProxy::append(uint32_t reqId, char const *buf, size_t len) {
   }
 }
 
+static constexpr char SERVICE_UNAVAILABLE_RESPONSE[] = "HTTP/1.0 503 Service Unavailable\r\n\r\n";
+
+static std::vector<char> serviceUnavailableResponse() {
+  return std::vector<char>(SERVICE_UNAVAILABLE_RESPONSE, SERVICE_UNAVAILABLE_RESPONSE + (sizeof(SERVICE_UNAVAILABLE_RESPONSE) - 1));
+}
+
 void HttpProxy::end(uint32_t reqId, SimulationClient &client) {
   auto it = m_partialHttpRequests.find(reqId);
 
@@ -35,15 +41,16 @@ void HttpProxy::end(uint32_t reqId, SimulationClient &client) {
   Request req;
   std::swap(req, it->second);
   m_partialHttpRequests.erase(it);
+  if (!m_enabled) {
+    fprintf(stderr, "Blocked HTTP request with ID %d\n", reqId);
+    sendResponse(req, serviceUnavailableResponse(), client);
+    return;
+  }
   std::vector<char> res = sendRequest(req);
   sendResponse(req, res, client);
 }
 
-static constexpr char SERVICE_UNAVAILABLE_RESPONSE[] = "HTTP/1.0 503 Service Unavailable\r\n\r\n";
-
-static std::vector<char> serviceUnavailableResponse() {
-  return std::vector<char>(SERVICE_UNAVAILABLE_RESPONSE, SERVICE_UNAVAILABLE_RESPONSE + (sizeof(SERVICE_UNAVAILABLE_RESPONSE) - 1));
-}
+void HttpProxy::setEnabled(bool enabled) { m_enabled = enabled; }
 
 std::vector<char> HttpProxy::sendRequest(Request const &req) {
   auto reqLineEnd = std::find(req.data.cbegin(), req.data.cend(), '\r');

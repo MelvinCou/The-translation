@@ -1,6 +1,8 @@
 #ifndef SIMULATION_M5_STACK_HPP
 #define SIMULATION_M5_STACK_HPP
 
+#include <freertos/FreeRTOS.h>
+
 #include "simulation/Button.hpp"
 #include "simulation/M5Display.hpp"
 #include "simulation/M5Power.hpp"

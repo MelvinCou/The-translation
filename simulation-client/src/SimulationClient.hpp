@@ -7,6 +7,7 @@
 #include <queue>
 
 #include "SimulationMessage.hpp"
+#include "WiFiEnums.hpp"
 
 class SimulationClient {
  public:
@@ -32,6 +33,8 @@ class SimulationClient {
   void sendConfigFullReadEnd();
   void sendNfcSetVersion(I2CAddress addr, uint8_t version);
   void sendNfcSetCard(I2CAddress addr, char const *card, size_t len);
+  void sendWifiSetModeAck();
+  void sendWifiConnectResponse(wl_status_t status);
 
  private:
   std::shared_ptr<std::atomic<bool>> m_stopToken;
