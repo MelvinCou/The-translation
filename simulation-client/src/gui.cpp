@@ -1,7 +1,6 @@
-#include <Configuration.hpp>
-
 #include "imgui.h"
 #include "sim/Client.hpp"
+#include "sim/Configuration.hpp"
 #include "sim/HardwareState.hpp"
 
 static void helpMarker(const char *desc) {
@@ -142,7 +141,7 @@ static void hardwareSection(sim::Client &client, sim::HardwareState &hw) {
   hardwareSectionWifi(hw);
 }
 
-static void configurationSection(sim::Client &client, Configuration &config) {
+static void configurationSection(sim::Client &client, sim::Configuration &config) {
   bool isExposed = config.isExposed();
 
   if (config.getFields().empty()) {
@@ -201,7 +200,7 @@ static void configurationSection(sim::Client &client, Configuration &config) {
   }
 }
 
-void drawGui(sim::Client &client, sim::HardwareState &hw, Configuration &config) {
+void drawGui(sim::Client &client, sim::HardwareState &hw, sim::Configuration &config) {
   ImGui::ShowDemoWindow(nullptr);
   ImGui::SetNextWindowCollapsed(false, ImGuiCond_Once);
   if (!ImGui::Begin("TheTranslation Control Panel", nullptr, 0)) {

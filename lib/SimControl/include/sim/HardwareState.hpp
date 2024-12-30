@@ -5,6 +5,7 @@
 #include "sim/WiFiEnums.hpp"
 
 namespace sim {
+/// @brief Raw state of the emulated hardware, access fields with care.
 struct HardwareState {
   bool btnADown;
   bool btnBDown;

@@ -10,6 +10,7 @@
 namespace sim {
 class Client;
 
+/// @brief Converts HTTP-related C2S/S2C messages to actual HTTP requests and responses to the outside world.
 class HttpProxy {
  public:
   void begin(uint32_t reqId, char const* host, size_t hostLen, uint16_t port);
