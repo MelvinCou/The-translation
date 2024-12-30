@@ -24,7 +24,7 @@ static void resetStatus(Dimensions const &d, sim::HardwareState &hw, Image *scre
 
 static void writeToLcd(Dimensions const &d, sim::HardwareState &hw, Image *screen, char const *buf, size_t len) {
   std::string text(buf, len);
-  
+
   for (size_t i = 0; i < len; ++i) {
     char txtBuf[2] = {buf[i], '\0'};
 
@@ -66,8 +66,7 @@ static void registerHandlers(sim::Controller &ctrl, Dimensions *d, Image *screen
   ctrl.registerDefaultReceiveHandlers();
   ctrl.onReceive(S2COpcode::RESET,
                  [d, screen](sim::Controller &c, S2CMessage const &) { resetStatus(*d, c.getHardwareState(), screen, c.getConfig()); });
-  ctrl.onReceive(S2COpcode::LCD_CLEAR, [screen](sim::Controller &, S2CMessage const &) { 
-    ImageClearBackground(screen, M5_BG); });
+  ctrl.onReceive(S2COpcode::LCD_CLEAR, [screen](sim::Controller &, S2CMessage const &) { ImageClearBackground(screen, M5_BG); });
   ctrl.onReceive(S2COpcode::LCD_SET_CURSOR, [](sim::Controller &c, S2CMessage const &msg) {
     c.getHardwareState().cursorX = msg.lcdSetCursor.x;
     c.getHardwareState().cursorY = msg.lcdSetCursor.y;
