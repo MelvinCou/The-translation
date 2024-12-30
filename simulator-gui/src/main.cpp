@@ -24,7 +24,7 @@ static void resetStatus(Dimensions const &d, sim::HardwareState &hw, Image *scre
 
 static void writeToLcd(Dimensions const &d, sim::HardwareState &hw, Image *screen, char const *buf, size_t len) {
   std::string text(buf, len);
-
+  
   for (size_t i = 0; i < len; ++i) {
     char txtBuf[2] = {buf[i], '\0'};
 
@@ -62,45 +62,46 @@ static void onWifiConnect(sim::Client &client, sim::HardwareState &hw, std::stri
   }
 }
 
-static void registerHandlers(sim::Controller &ctrl, Dimensions const &d, Image *screen) {
-  ctrl.registerDefaultMessageHandlers();
-  ctrl.onMessage(S2COpcode::RESET,
-                 [d, screen](sim::Controller &c, S2CMessage const &) { resetStatus(d, c.getHardwareState(), screen, c.getConfig()); });
-  ctrl.onMessage(S2COpcode::LCD_CLEAR, [screen](sim::Controller &, S2CMessage const &) { ImageClearBackground(screen, M5_BG); });
-  ctrl.onMessage(S2COpcode::LCD_SET_CURSOR, [](sim::Controller &c, S2CMessage const &msg) {
+static void registerHandlers(sim::Controller &ctrl, Dimensions *d, Image *screen) {
+  ctrl.registerDefaultReceiveHandlers();
+  ctrl.onReceive(S2COpcode::RESET,
+                 [d, screen](sim::Controller &c, S2CMessage const &) { resetStatus(*d, c.getHardwareState(), screen, c.getConfig()); });
+  ctrl.onReceive(S2COpcode::LCD_CLEAR, [screen](sim::Controller &, S2CMessage const &) { 
+    ImageClearBackground(screen, M5_BG); });
+  ctrl.onReceive(S2COpcode::LCD_SET_CURSOR, [](sim::Controller &c, S2CMessage const &msg) {
     c.getHardwareState().cursorX = msg.lcdSetCursor.x;
     c.getHardwareState().cursorY = msg.lcdSetCursor.y;
   });
-  ctrl.onMessage(S2COpcode::LCD_SET_TEXT_SIZE,
-                 [](sim::Controller &c, S2CMessage const &msg) { c.getHardwareState().fontSize = msg.lcdSetTextSize.size; });
-  ctrl.onMessage(S2COpcode::LCD_WRITE, [d, screen](sim::Controller &c, S2CMessage const &msg) {
-    writeToLcd(d, c.getHardwareState(), screen, reinterpret_cast<char const *>(msg.lcdWrite.buf), msg.lcdWrite.len);
+  ctrl.onReceive(S2COpcode::LCD_SET_TEXT_SIZE,
+                 [d](sim::Controller &c, S2CMessage const &msg) { c.getHardwareState().fontSize = msg.lcdSetTextSize.size * d->scale; });
+  ctrl.onReceive(S2COpcode::LCD_WRITE, [d, screen](sim::Controller &c, S2CMessage const &msg) {
+    writeToLcd(*d, c.getHardwareState(), screen, reinterpret_cast<char const *>(msg.lcdWrite.buf), msg.lcdWrite.len);
   });
-  ctrl.onMessage(S2COpcode::CONVEYOR_SET_SPEED, [](sim::Controller &c, S2CMessage const &msg) {
+  ctrl.onReceive(S2COpcode::CONVEYOR_SET_SPEED, [](sim::Controller &c, S2CMessage const &msg) {
     if (c.getHardwareState().conveyorEnabled) c.getHardwareState().conveyorSpeed = msg.conveyorSetSpeed;
   });
-  ctrl.onMessage(S2COpcode::HTTP_BEGIN, [](sim::Controller &c, S2CMessage const &msg) {
+  ctrl.onReceive(S2COpcode::HTTP_BEGIN, [](sim::Controller &c, S2CMessage const &msg) {
     c.getHardwareState().httpProxy.begin(msg.httpBegin.reqId, reinterpret_cast<char const *>(msg.httpBegin.host), msg.httpBegin.len,
                                          msg.httpBegin.port);
   });
-  ctrl.onMessage(S2COpcode::HTTP_WRITE, [](sim::Controller &c, S2CMessage const &msg) {
+  ctrl.onReceive(S2COpcode::HTTP_WRITE, [](sim::Controller &c, S2CMessage const &msg) {
     c.getHardwareState().httpProxy.append(msg.httpWrite.reqId, reinterpret_cast<char const *>(msg.httpWrite.buf), msg.httpWrite.len);
   });
-  ctrl.onMessage(S2COpcode::HTTP_END,
+  ctrl.onReceive(S2COpcode::HTTP_END,
                  [](sim::Controller &c, S2CMessage const &msg) { c.getHardwareState().httpProxy.end(msg.httpEnd.reqId, c.getClient()); });
-  ctrl.onMessage(S2COpcode::NFC_GET_VERSION, [](sim::Controller &c, S2CMessage const &) {
+  ctrl.onReceive(S2COpcode::NFC_GET_VERSION, [](sim::Controller &c, S2CMessage const &) {
     if (c.getHardwareState().tagReaderEnabled) c.getClient().sendNfcSetVersion(I2CAddress{0, 0x28}, c.getHardwareState().tagReaderVersion);
   });
-  ctrl.onMessage(S2COpcode::SORTER_SET_ANGLE, [](sim::Controller &c, S2CMessage const &msg) {
+  ctrl.onReceive(S2COpcode::SORTER_SET_ANGLE, [](sim::Controller &c, S2CMessage const &msg) {
     if (c.getHardwareState().sorterEnabled) c.getHardwareState().sorterAngle = msg.sorterSetAngle;
   });
-  ctrl.onMessage(S2COpcode::WIFI_SET_MODE, [](sim::Controller &c, S2CMessage const &msg) {
+  ctrl.onReceive(S2COpcode::WIFI_SET_MODE, [](sim::Controller &c, S2CMessage const &msg) {
     if (c.getHardwareState().wifiEnabled) {
       c.getHardwareState().wifiMode = static_cast<sim::wifi_mode_t>(msg.wifiSetMode);
       c.getClient().sendWifiSetModeAck();
     }
   });
-  ctrl.onMessage(S2COpcode::WIFI_CONNECT, [](sim::Controller &c, S2CMessage const &msg) {
+  ctrl.onReceive(S2COpcode::WIFI_CONNECT, [](sim::Controller &c, S2CMessage const &msg) {
     onWifiConnect(c.getClient(), c.getHardwareState(),
                   std::string(reinterpret_cast<char const *>(msg.wifiConnect.buf), msg.wifiConnect.ssidLen),
                   std::string(reinterpret_cast<char const *>(msg.wifiConnect.buf + msg.wifiConnect.ssidLen), msg.wifiConnect.passLen));
@@ -183,22 +184,22 @@ int main() {
 
   sim::Controller ctrl(client, std::shared_ptr<std::atomic<bool>>(), d.scale);
 
-  registerHandlers(ctrl, d, &screen);
+  registerHandlers(ctrl, &d, &screen);
 
   while (!WindowShouldClose()) {
     if (IsWindowResized()) {
       float oldScale = d.scale;
       int sw = GetScreenWidth();
       int sh = GetScreenHeight();
-      d = Dimensions(sw, sh);
+      auto newDims = Dimensions(sw, sh);
+      std::swap(d, newDims);
       ImageResize(&screen, d.m5Screen.width, d.m5Screen.height);
       ctrl.getHardwareState().fontSize *= d.scale / oldScale;
     }
 
-    sim::HardwareState newHw = ctrl.getHardwareState();
-    handleEvents(ctrl, newHw, d);
-    handleChange(*client, newHw, ctrl.getHardwareState());
-    ctrl.getHardwareState() = newHw;
+    sim::HardwareState oldHw = ctrl.getHardwareState();
+    handleEvents(ctrl, ctrl.getHardwareState(), d);
+    handleChange(*client, oldHw, ctrl.getHardwareState());
 
     Texture2D screenTexture = LoadTextureFromImage(screen);
 

@@ -15,7 +15,7 @@ set(SOURCES
         ../rlImGui/rlImGui.cpp
 )
 
-add_executable(simulation-client ${SOURCES})
-target_include_directories(simulation-client PRIVATE . ../../lib/SimControl/include ../imgui ../rlImGui)
+add_executable(simulator-gui ${SOURCES})
+target_include_directories(simulator-gui PRIVATE . ../../lib/SimControl/include ../imgui ../rlImGui)
 
-target_link_libraries(simulation-client -lraylib)
+target_link_libraries(simulator-gui -lraylib)

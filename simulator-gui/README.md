@@ -1,10 +1,10 @@
-# The Translation - Simulation Client
+# The Translation - Graphical Simulator
 
 This is a graphical user interface (GUI) for the Translation simulation.  
 It is build using Raylib, C++ 11 and CMake with no other dependencies.  
 This program communicates with the Translation simulation server using an Unix socket.
 
-![Screenshot](../docs/imgs/simulation-client.png)
+<img alt="Screenshot" src="../docs/imgs/simulator-gui.png" width="" height="500"/>
 
 ## Dependencies
 
@@ -20,14 +20,14 @@ This project embeds [Dear ImGui v1.91.6](https://github.com/ocornut/imgui/tree/v
 Debug build:
 ```shell
 cmake -DCMAKE_BUILD_TYPE=Debug -G Ninja -S . -B cmake-build-debug
-cmake --build cmake-build-debug --target simulation-client -j$(nproc)
+cmake --build cmake-build-debug --target simulator-gui -j$(nproc)
 ```
 
 ## Running
 
 ```shell
 # Debug
-./cmake-build-debug/src/simulation-client
+./cmake-build-debug/src/simulator-gui
 # Release 
-./cmake-build-release/src/simulation-client
+./cmake-build-release/src/simulator-gui
 ```
