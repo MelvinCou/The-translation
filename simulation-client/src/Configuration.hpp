@@ -6,7 +6,9 @@
 #include <vector>
 
 class S2CMessage;
-class SimulationClient;
+namespace sim {
+class Client;
+}
 
 #define CONFIG_FIELD_TYPE_TEXT 0
 #define CONFIG_FIELD_TYPE_PASSWORD 1
@@ -38,16 +40,16 @@ class Configuration {
   bool isExposed() const;
   void setExposed(bool exposed);
   std::vector<ConfigField> &getFields();
-  void applyChanges(SimulationClient &client);
+  void applyChanges(sim::Client &client);
   void saveToFile(std::string const &filename);
   void loadFromFile(std::string const &filename);
-  void doFullConfigRead(SimulationClient &client);
+  void doFullConfigRead(sim::Client &client);
 
  private:
   std::vector<ConfigField> m_fields;
   bool m_exposed;
 
-  void sendSetValue(SimulationClient &client, ConfigField const &field);
+  void sendSetValue(sim::Client &client, ConfigField const &field);
 };
 
 #endif  // !defined(CONFIGURATION_HPP)

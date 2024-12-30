@@ -1,8 +1,8 @@
 #include <Configuration.hpp>
 
-#include "SimulationClient.hpp"
-#include "Status.hpp"
 #include "imgui.h"
+#include "sim/Client.hpp"
+#include "sim/HardwareState.hpp"
 
 static void helpMarker(const char *desc) {
   ImGui::SameLine();
@@ -15,8 +15,8 @@ static void helpMarker(const char *desc) {
   }
 }
 
-static void simulationStatusSection(SimulationClient const &client) {
-  bool isConnecting = client.getState() == SimulationClient::State::CONNECTING;
+static void simulationStatusSection(sim::Client const &client) {
+  bool isConnecting = client.getState() == sim::Client::State::CONNECTING;
   if (isConnecting) {
     ImGui::TextColored({1.f, 0.f, 0.f, 1.f}, "Connecting...");
   } else {
@@ -35,7 +35,7 @@ static std::vector<char> uint64ToBigEndianBytes(uint64_t value) {
   return bytes;
 }
 
-static void hardwareSectionM5Stack(SimulationClient &client, Status &status) {
+static void hardwareSectionM5Stack(sim::Client &client, sim::HardwareState &hw) {
   ImGui::PushID(1);
   ImGui::SeparatorText("M5Stack");
   ImGui::PushStyleColor(ImGuiCol_Button, static_cast<ImVec4>(ImColor::HSV(0, 0.6f, 0.6f)));
@@ -65,84 +65,84 @@ static void hardwareSectionM5Stack(SimulationClient &client, Status &status) {
   ImGui::PopID();
 }
 
-static void hardwareSectionTagReader(SimulationClient &client, Status &status) {
+static void hardwareSectionTagReader(sim::Client &client, sim::HardwareState &hw) {
   ImGui::PushID(2);
   ImGui::SeparatorText("Tag Reader");
-  ImGui::Checkbox("Enable", &status.tagReaderEnabled);
-  ImGui::InputScalar("Version", ImGuiDataType_U8, &status.tagReaderVersion, nullptr, nullptr, "%x", 0);
+  ImGui::Checkbox("Enable", &hw.tagReaderEnabled);
+  ImGui::InputScalar("Version", ImGuiDataType_U8, &hw.tagReaderVersion, nullptr, nullptr, "%x", 0);
   if (ImGui::Button("Send")) {
-    if (status.tagReaderUid == 0) {
+    if (hw.tagReaderUid == 0) {
       client.sendNfcSetCard(I2CAddress{0, 0x28}, "", 0);
     } else {
-      std::vector<char> uid = uint64ToBigEndianBytes(status.tagReaderUid);
+      std::vector<char> uid = uint64ToBigEndianBytes(hw.tagReaderUid);
       client.sendNfcSetCard(I2CAddress{0, 0x28}, uid.data(), uid.size());
     }
   }
   ImGui::SameLine();
-  ImGui::InputScalar("UID", ImGuiDataType_U64, &status.tagReaderUid, nullptr, nullptr, "%x", 0);
+  ImGui::InputScalar("UID", ImGuiDataType_U64, &hw.tagReaderUid, nullptr, nullptr, "%x", 0);
   ImGui::PopID();
 }
 
-static void hardwareSectionEndOfLineReader(SimulationClient &client, Status &status) {
+static void hardwareSectionEndOfLineReader(sim::Client &client, sim::HardwareState &hw) {
   ImGui::PushID(3);
   ImGui::SeparatorText("End of Line Reader");
-  ImGui::Checkbox("Enable", &status.tagReaderEnabled);
-  ImGui::InputScalar("Version", ImGuiDataType_U8, &status.tagReaderVersion, nullptr, nullptr, "%x", 0);
+  ImGui::Checkbox("Enable", &hw.tagReaderEnabled);
+  ImGui::InputScalar("Version", ImGuiDataType_U8, &hw.tagReaderVersion, nullptr, nullptr, "%x", 0);
   if (ImGui::Button("Send")) {
-    if (status.tagReaderUid == 0) {
+    if (hw.tagReaderUid == 0) {
       client.sendNfcSetCard(I2CAddress{1, 0x28}, "", 0);
     } else {
-      std::vector<char> uid = uint64ToBigEndianBytes(status.tagReaderUid);
+      std::vector<char> uid = uint64ToBigEndianBytes(hw.tagReaderUid);
       client.sendNfcSetCard(I2CAddress{1, 0x28}, uid.data(), uid.size());
     }
   }
   ImGui::SameLine();
-  ImGui::InputScalar("UID", ImGuiDataType_U64, &status.tagReaderUid, nullptr, nullptr, "%x", 0);
+  ImGui::InputScalar("UID", ImGuiDataType_U64, &hw.tagReaderUid, nullptr, nullptr, "%x", 0);
   ImGui::PopID();
 }
 
-static void hardwareSectionConveyor(Status &status) {
+static void hardwareSectionConveyor(sim::HardwareState &hw) {
   ImGui::PushID(4);
   ImGui::SeparatorText("Conveyor");
-  ImGui::Checkbox("Enable", &status.conveyorEnabled);
-  ImGui::Text("Speed: %u", status.conveyorSpeed);
+  ImGui::Checkbox("Enable", &hw.conveyorEnabled);
+  ImGui::Text("Speed: %u", hw.conveyorSpeed);
   ImGui::PopID();
 }
 
-static void hardwareSectionSorter(Status &status) {
+static void hardwareSectionSorter(sim::HardwareState &hw) {
   ImGui::PushID(5);
   ImGui::SeparatorText("Sorter");
-  ImGui::Checkbox("Enable", &status.sorterEnabled);
-  ImGui::Text("Angle: %u", status.sorterAngle);
+  ImGui::Checkbox("Enable", &hw.sorterEnabled);
+  ImGui::Text("Angle: %u", hw.sorterAngle);
   ImGui::PopID();
 }
 
-static void hardwareSectionWifi(Status &status) {
+static void hardwareSectionWifi(sim::HardwareState &hw) {
   ImGui::PushID(6);
   ImGui::SeparatorText("WIFI Antenna");
-  if (ImGui::Checkbox("Enable", &status.wifiEnabled)) {
-    status.httpProxy.setEnabled(status.wifiEnabled);
+  if (ImGui::Checkbox("Enable", &hw.wifiEnabled)) {
+    hw.httpProxy.setEnabled(hw.wifiEnabled);
   }
-  size_t wifiModeIndex = std::min(static_cast<size_t>(status.wifiMode), sizeof(WIFI_MODE_NAMES) / sizeof(WIFI_MODE_NAMES[0]) - 1);
-  size_t wifiStatusIndex = std::min(static_cast<size_t>(status.wifiStatus), sizeof(WL_STATUS_NAMES) / sizeof(WL_STATUS_NAMES[0]) - 1);
-  ImGui::Text("Mode: %s", WIFI_MODE_NAMES[wifiModeIndex]);
+  size_t wifiModeIndex = std::min(static_cast<size_t>(hw.wifiMode), sizeof(sim::WIFI_MODE_NAMES) / sizeof(sim::WIFI_MODE_NAMES[0]) - 1);
+  size_t wifiStatusIndex = std::min(static_cast<size_t>(hw.wifiStatus), sizeof(sim::WL_STATUS_NAMES) / sizeof(sim::WL_STATUS_NAMES[0]) - 1);
+  ImGui::Text("Mode: %s", sim::WIFI_MODE_NAMES[wifiModeIndex]);
   ImGui::SameLine();
-  ImGui::Text("Status: %s", WL_STATUS_NAMES[wifiStatusIndex]);
-  ImGui::InputTextWithHint("Expected SSID", "<empty>", status.wifiSsid, sizeof(status.wifiSsid), 0);
-  ImGui::InputTextWithHint("Expected Pass", "<empty>", status.wifiPass, sizeof(status.wifiPass), ImGuiInputTextFlags_Password);
+  ImGui::Text("Status: %s", sim::WL_STATUS_NAMES[wifiStatusIndex]);
+  ImGui::InputTextWithHint("Expected SSID", "<empty>", hw.wifiSsid, sizeof(hw.wifiSsid), 0);
+  ImGui::InputTextWithHint("Expected Pass", "<empty>", hw.wifiPass, sizeof(hw.wifiPass), ImGuiInputTextFlags_Password);
   ImGui::PopID();
 }
 
-static void hardwareSection(SimulationClient &client, Status &status) {
-  hardwareSectionM5Stack(client, status);
-  hardwareSectionTagReader(client, status);
-  hardwareSectionEndOfLineReader(client, status);
-  hardwareSectionConveyor(status);
-  hardwareSectionSorter(status);
-  hardwareSectionWifi(status);
+static void hardwareSection(sim::Client &client, sim::HardwareState &hw) {
+  hardwareSectionM5Stack(client, hw);
+  hardwareSectionTagReader(client, hw);
+  hardwareSectionEndOfLineReader(client, hw);
+  hardwareSectionConveyor(hw);
+  hardwareSectionSorter(hw);
+  hardwareSectionWifi(hw);
 }
 
-static void configurationSection(SimulationClient &client, Configuration &config) {
+static void configurationSection(sim::Client &client, Configuration &config) {
   bool isExposed = config.isExposed();
 
   if (config.getFields().empty()) {
@@ -201,7 +201,7 @@ static void configurationSection(SimulationClient &client, Configuration &config
   }
 }
 
-void drawGui(SimulationClient &client, Status &status, Configuration &config) {
+void drawGui(sim::Client &client, sim::HardwareState &hw, Configuration &config) {
   ImGui::ShowDemoWindow(nullptr);
   ImGui::SetNextWindowCollapsed(false, ImGuiCond_Once);
   if (!ImGui::Begin("TheTranslation Control Panel", nullptr, 0)) {
@@ -214,7 +214,7 @@ void drawGui(SimulationClient &client, Status &status, Configuration &config) {
     simulationStatusSection(client);
   }
   if (ImGui::CollapsingHeader("Hardware")) {
-    hardwareSection(client, status);
+    hardwareSection(client, hw);
   }
   if (ImGui::CollapsingHeader("Configuration")) {
     configurationSection(client, config);

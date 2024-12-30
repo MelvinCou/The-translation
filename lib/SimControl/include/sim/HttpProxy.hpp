@@ -7,13 +7,14 @@
 #include <unordered_map>
 #include <vector>
 
-class SimulationClient;
+namespace sim {
+class Client;
 
 class HttpProxy {
  public:
   void begin(uint32_t reqId, char const* host, size_t hostLen, uint16_t port);
   void append(uint32_t reqId, char const* buf, size_t len);
-  void end(uint32_t reqId, SimulationClient& client);
+  void end(uint32_t reqId, Client& client);
   void setEnabled(bool enabled);
 
  private:
@@ -27,7 +28,8 @@ class HttpProxy {
   bool m_enabled = true;
 
   std::vector<char> sendRequest(Request const& req);
-  void sendResponse(Request const& req, std::vector<char> const& res, SimulationClient& client);
+  void sendResponse(Request const& req, std::vector<char> const& res, Client& client);
 };
+}  // namespace sim
 
 #endif  // !defined(HTTP_PROXY_HPP)

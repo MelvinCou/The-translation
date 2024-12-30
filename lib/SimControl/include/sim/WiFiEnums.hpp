@@ -1,6 +1,7 @@
-#ifndef WIFI_ENUMS_HPP
-#define WIFI_ENUMS_HPP
+#ifndef SIM_WIFI_ENUMS_HPP
+#define SIM_WIFI_ENUMS_HPP
 
+namespace sim {
 typedef enum {
   WIFI_MODE_NULL = 0,
   WIFI_MODE_STA,
@@ -28,5 +29,6 @@ static constexpr char const *WL_STATUS_NAMES[] = {
     "WL_IDLE_STATUS",    "WL_NO_SSID_AVAIL",   "WL_SCAN_COMPLETED", "WL_CONNECTED",
     "WL_CONNECT_FAILED", "WL_CONNECTION_LOST", "WL_DISCONNECTED",   "WL_UNKNOWN",
 };
+}  // namespace sim
 
-#endif  // !defined(WIFI_ENUMS_HPP)
+#endif  // !defined(SIM_WIFI_ENUMS_HPP)

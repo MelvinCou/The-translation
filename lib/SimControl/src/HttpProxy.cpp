@@ -1,4 +1,4 @@
-#include "HttpProxy.hpp"
+#include "sim/HttpProxy.hpp"
 
 #include <netdb.h>
 #include <netinet/in.h>
@@ -6,17 +6,18 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <SimulationClient.hpp>
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <string>
 
-void HttpProxy::begin(uint32_t reqId, char const *host, size_t hostLen, uint16_t port) {
+#include "sim/Client.hpp"
+
+void sim::HttpProxy::begin(uint32_t reqId, char const *host, size_t hostLen, uint16_t port) {
   m_partialHttpRequests[reqId] = Request{reqId, std::string(host, hostLen), port, {}};
 }
 
-void HttpProxy::append(uint32_t reqId, char const *buf, size_t len) {
+void sim::HttpProxy::append(uint32_t reqId, char const *buf, size_t len) {
   auto it = m_partialHttpRequests.find(reqId);
   if (it != m_partialHttpRequests.end()) {
     it->second.data.insert(it->second.data.end(), buf, buf + len);
@@ -28,10 +29,10 @@ void HttpProxy::append(uint32_t reqId, char const *buf, size_t len) {
 static constexpr char SERVICE_UNAVAILABLE_RESPONSE[] = "HTTP/1.0 503 Service Unavailable\r\n\r\n";
 
 static std::vector<char> serviceUnavailableResponse() {
-  return std::vector<char>(SERVICE_UNAVAILABLE_RESPONSE, SERVICE_UNAVAILABLE_RESPONSE + (sizeof(SERVICE_UNAVAILABLE_RESPONSE) - 1));
+  return {SERVICE_UNAVAILABLE_RESPONSE, SERVICE_UNAVAILABLE_RESPONSE + (sizeof(SERVICE_UNAVAILABLE_RESPONSE) - 1)};
 }
 
-void HttpProxy::end(uint32_t reqId, SimulationClient &client) {
+void sim::HttpProxy::end(uint32_t reqId, sim::Client &client) {
   auto it = m_partialHttpRequests.find(reqId);
 
   if (it == m_partialHttpRequests.end()) {
@@ -50,9 +51,9 @@ void HttpProxy::end(uint32_t reqId, SimulationClient &client) {
   sendResponse(req, res, client);
 }
 
-void HttpProxy::setEnabled(bool enabled) { m_enabled = enabled; }
+void sim::HttpProxy::setEnabled(bool enabled) { m_enabled = enabled; }
 
-std::vector<char> HttpProxy::sendRequest(Request const &req) {
+std::vector<char> sim::HttpProxy::sendRequest(Request const &req) {
   auto reqLineEnd = std::find(req.data.cbegin(), req.data.cend(), '\r');
 
   printf("HTTP(%u) => %s\n", req.id, std::string(req.data.begin(), reqLineEnd).c_str());
@@ -121,7 +122,7 @@ std::vector<char> HttpProxy::sendRequest(Request const &req) {
   return res;
 }
 
-void HttpProxy::sendResponse(Request const &req, std::vector<char> const &res, SimulationClient &client) {
+void sim::HttpProxy::sendResponse(Request const &req, std::vector<char> const &res, sim::Client &client) {
   auto const resLineEnd = std::find(res.cbegin(), res.cend(), '\r');
   printf("HTTP(%u) <= %s\n", req.id, std::string(res.cbegin(), resLineEnd).c_str());
 

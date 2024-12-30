@@ -1,4 +1,4 @@
-#include "SimulationClient.hpp"
+#include "sim/Client.hpp"
 
 #include <poll.h>
 #include <sys/socket.h>
@@ -7,24 +7,23 @@
 
 #include <cstdio>
 #include <cstring>
-#include <iostream>
 #include <thread>
 
-#include "Status.hpp"
+#include "sim/HardwareState.hpp"
 
 #define SIM_SOCKET_PATH "/tmp/the-translation.sock"
 
-SimulationClient::SimulationClient(std::shared_ptr<std::atomic<bool>> const& stopToken)
+sim::Client::Client(std::shared_ptr<std::atomic<bool>> const& stopToken)
     : m_stopToken(stopToken), m_state(State::CONNECTING), m_sockFd(-1), m_hasC2SQueuedMessages(false), m_hasS2CQueuedMessages(false) {}
 
-void SimulationClient::pushToServer(C2SMessage&& msg) {
+void sim::Client::pushToServer(C2SMessage&& msg) {
   //
   std::unique_lock<std::mutex> lock(m_c2sQueueLock);
   m_c2sQueue.push(std::move(msg));
   m_hasC2SQueuedMessages.store(true);
 }
 
-bool SimulationClient::popFromServer(std::vector<S2CMessage>& popped) {
+bool sim::Client::popFromServer(std::vector<S2CMessage>& popped) {
   if (!m_hasS2CQueuedMessages.load()) return false;
   std::unique_lock<std::mutex> lock(m_s2cQueueLock);
 
@@ -38,9 +37,9 @@ bool SimulationClient::popFromServer(std::vector<S2CMessage>& popped) {
   return true;
 }
 
-SimulationClient::State SimulationClient::getState() const { return m_state.load(std::memory_order_relaxed); }
+sim::Client::State sim::Client::getState() const { return m_state.load(std::memory_order_relaxed); }
 
-void SimulationClient::run() {
+void sim::Client::run() {
   while (!m_stopToken->load() && step() >= 0) {
     // keep running
   }
@@ -50,7 +49,7 @@ void SimulationClient::run() {
   printf("== CLIENT STOPPED ==\n");
 }
 
-int SimulationClient::step() {
+int sim::Client::step() {
   switch (m_state.load(std::memory_order_relaxed)) {
     case State::CONNECTING:
       return doConnect();
@@ -66,7 +65,7 @@ int SimulationClient::step() {
   return -1;
 }
 
-int SimulationClient::transitionTo(State next) {
+int sim::Client::transitionTo(State next) {
   State prev = m_state.load(std::memory_order_relaxed);
 
   if (next == State::CONNECTING) {
@@ -86,7 +85,7 @@ int SimulationClient::transitionTo(State next) {
   return 0;
 }
 
-int SimulationClient::doConnect() {
+int sim::Client::doConnect() {
   m_sockFd = socket(AF_UNIX, SOCK_STREAM, 0);
 
   if (m_sockFd < 0) {
@@ -111,7 +110,7 @@ int SimulationClient::doConnect() {
   return transitionTo(State::WAITING_FOR_IO);
 }
 
-int SimulationClient::doWaitForIO() {
+int sim::Client::doWaitForIO() {
   pollfd pfd{};
   pfd.fd = m_sockFd;
   pfd.events = POLLIN | POLLOUT;
@@ -141,7 +140,7 @@ int SimulationClient::doWaitForIO() {
   return 0;
 }
 
-int SimulationClient::doWrite() {
+int sim::Client::doWrite() {
   std::unique_lock<std::mutex> lock(m_c2sQueueLock);
   while (!m_c2sQueue.empty()) {
     C2SMessage const& msg = m_c2sQueue.front();
@@ -169,7 +168,7 @@ int SimulationClient::doWrite() {
   return transitionTo(State::WAITING_FOR_IO);
 }
 
-int SimulationClient::doRead() {
+int sim::Client::doRead() {
   unsigned char buf[256];
   ssize_t numBytes;
 
@@ -220,7 +219,7 @@ static NextMessageResult popNextMessage(std::vector<uint8_t>& data, S2CMessage* 
   return S2C_MSG_READY;
 }
 
-int SimulationClient::doProcess() {
+int sim::Client::doProcess() {
   S2CMessage msg;
 
   switch (popNextMessage(m_buf, &msg)) {
@@ -241,16 +240,16 @@ int SimulationClient::doProcess() {
   return 0;
 }
 
-void SimulationClient::sendSetButton(uint8_t id, bool pressed) {
+void sim::Client::sendSetButton(uint8_t id, bool pressed) {
   C2SMessage setBtnAMsg{C2SOpcode::SET_BUTTON, {}};
   setBtnAMsg.setButton.id = id;
   setBtnAMsg.setButton.value = pressed ? 1 : 0;
   pushToServer(std::move(setBtnAMsg));
 }
 
-void SimulationClient::sendReset() { pushToServer(C2SMessage{C2SOpcode::RESET, {}}); }
+void sim::Client::sendReset() { pushToServer(C2SMessage{C2SOpcode::RESET, {}}); }
 
-void SimulationClient::sendConfigSetValue(char const* name, char const* value) {
+void sim::Client::sendConfigSetValue(char const* name, char const* value) {
   C2SMessage msg{C2SOpcode::CONFIG_SET_VALUE, {}};
 
   constexpr size_t fieldMaxLen = 83;
@@ -263,19 +262,19 @@ void SimulationClient::sendConfigSetValue(char const* name, char const* value) {
   pushToServer(std::move(msg));
 }
 
-void SimulationClient::sendConfigFullReadEnd() {
+void sim::Client::sendConfigFullReadEnd() {
   C2SMessage msg{C2SOpcode::CONFIG_FULL_READ_END, {}};
   pushToServer(std::move(msg));
 }
 
-void SimulationClient::sendNfcSetVersion(I2CAddress addr, uint8_t version) {
+void sim::Client::sendNfcSetVersion(I2CAddress addr, uint8_t version) {
   C2SMessage msg{C2SOpcode::NFC_SET_VERSION, {}};
   msg.nfcSetVersion.addr = addr;
   msg.nfcSetVersion.version = version;
   pushToServer(std::move(msg));
 }
 
-void SimulationClient::sendNfcSetCard(I2CAddress addr, char const* card, size_t len) {
+void sim::Client::sendNfcSetCard(I2CAddress addr, char const* card, size_t len) {
   C2SMessage msg{C2SOpcode::NFC_SET_CARD, {}};
   msg.nfcSetCard.addr = addr;
   msg.nfcSetCard.uidLen = std::min(len, sizeof(msg.nfcSetCard.uid));
@@ -285,12 +284,12 @@ void SimulationClient::sendNfcSetCard(I2CAddress addr, char const* card, size_t 
   pushToServer(std::move(msg));
 }
 
-void SimulationClient::sendWifiSetModeAck() {
+void sim::Client::sendWifiSetModeAck() {
   C2SMessage msg{C2SOpcode::WIFI_SET_MODE_ACK, {}};
   pushToServer(std::move(msg));
 }
 
-void SimulationClient::sendWifiConnectResponse(wl_status_t status) {
+void sim::Client::sendWifiConnectResponse(wl_status_t status) {
   C2SMessage msg{C2SOpcode::WIFI_CONNECT_RESPONSE, {}};
   msg.wifiConnectResponse = status;
   pushToServer(std::move(msg));

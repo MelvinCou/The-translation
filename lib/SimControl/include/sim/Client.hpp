@@ -1,15 +1,16 @@
-#ifndef SIMULATION_CLIENT_HPP
-#define SIMULATION_CLIENT_HPP
+#ifndef SIM_CLIENT_HPP
+#define SIM_CLIENT_HPP
 
 #include <atomic>
 #include <memory>
 #include <mutex>
 #include <queue>
 
-#include "SimulationMessage.hpp"
 #include "WiFiEnums.hpp"
+#include "sim/Message.hpp"
 
-class SimulationClient {
+namespace sim {
+class Client {
  public:
   enum class State {
     CONNECTING,
@@ -18,7 +19,7 @@ class SimulationClient {
     READING,
     PROCESSING,
   };
-  explicit SimulationClient(std::shared_ptr<std::atomic<bool>> const &stopToken);
+  explicit Client(std::shared_ptr<std::atomic<bool>> const &stopToken);
   void pushToServer(C2SMessage &&msg);
   bool popFromServer(std::vector<S2CMessage> &popped);
   State getState() const;
@@ -60,5 +61,6 @@ class SimulationClient {
   int doRead();
   int doProcess();
 };
+}  // namespace sim
 
-#endif  // !defined(SIMULATION_CLIENT_HPP)
+#endif  // !defined(SIM_CLIENT_HPP)
