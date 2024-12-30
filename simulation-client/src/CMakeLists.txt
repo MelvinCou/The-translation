@@ -1,9 +1,11 @@
 set(SOURCES
-        Configuration.cpp
         gui.cpp
         main.cpp
         ../../lib/SimControl/src/Client.cpp
         ../../lib/SimControl/src/ClientThread.cpp
+        ../../lib/SimControl/src/Configuration.cpp
+        ../../lib/SimControl/src/Controller.cpp
+        ../../lib/SimControl/src/ControllerThread.cpp
         ../../lib/SimControl/src/HttpProxy.cpp
         ../imgui/imgui.cpp
         ../imgui/imgui_demo.cpp

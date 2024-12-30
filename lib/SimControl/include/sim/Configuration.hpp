@@ -1,5 +1,5 @@
-#ifndef CONFIGURATION_HPP
-#define CONFIGURATION_HPP
+#ifndef SIM_CONFIGURATION_HPP
+#define SIM_CONFIGURATION_HPP
 
 #include <cstdint>
 #include <string>
@@ -8,7 +8,6 @@
 class S2CMessage;
 namespace sim {
 class Client;
-}
 
 #define CONFIG_FIELD_TYPE_TEXT 0
 #define CONFIG_FIELD_TYPE_PASSWORD 1
@@ -32,6 +31,7 @@ struct ConfigField {
   bool isDefault() const;
 };
 
+/// @brief Process read/write access to the persistent configuration.
 class Configuration {
  public:
   Configuration();
@@ -40,16 +40,17 @@ class Configuration {
   bool isExposed() const;
   void setExposed(bool exposed);
   std::vector<ConfigField> &getFields();
-  void applyChanges(sim::Client &client);
+  void applyChanges(Client &client);
   void saveToFile(std::string const &filename);
   void loadFromFile(std::string const &filename);
-  void doFullConfigRead(sim::Client &client);
+  void doFullConfigRead(Client &client);
 
  private:
   std::vector<ConfigField> m_fields;
   bool m_exposed;
 
-  void sendSetValue(sim::Client &client, ConfigField const &field);
+  void sendSetValue(Client &client, ConfigField const &field);
 };
+}  // namespace sim
 
-#endif  // !defined(CONFIGURATION_HPP)
+#endif  // !defined(SIM_CONFIGURATION_HPP)

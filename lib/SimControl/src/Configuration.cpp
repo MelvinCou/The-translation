@@ -1,15 +1,15 @@
-#include "Configuration.hpp"
+#include "sim/Configuration.hpp"
 
 #include <cstring>
 #include <fstream>
 #include <unordered_map>
 
-#include "SimulationMessage.hpp"
 #include "sim/Client.hpp"
+#include "sim/Message.hpp"
 
-ConfigField::ConfigField() : type(CONFIG_FIELD_TYPE_TEXT), textValue{} { memset(textValue, 0, sizeof(textValue)); }
+sim::ConfigField::ConfigField() : type(CONFIG_FIELD_TYPE_TEXT), changed(false), textValue{} { memset(textValue, 0, sizeof(textValue)); }
 
-void ConfigField::resetToDefault() {
+void sim::ConfigField::resetToDefault() {
   if (type == CONFIG_FIELD_TYPE_TEXT || type == CONFIG_FIELD_TYPE_PASSWORD) {
     strncpy(textValue, defaultValue.c_str(), sizeof(textValue));
   } else if (type == CONFIG_FIELD_TYPE_INT) {
@@ -17,7 +17,7 @@ void ConfigField::resetToDefault() {
   }
 }
 
-bool ConfigField::isDefault() const {
+bool sim::ConfigField::isDefault() const {
   if (type == CONFIG_FIELD_TYPE_TEXT || type == CONFIG_FIELD_TYPE_PASSWORD) {
     return strcmp(textValue, defaultValue.c_str()) == 0;
   }
@@ -27,11 +27,11 @@ bool ConfigField::isDefault() const {
   return true;
 }
 
-Configuration::Configuration() : m_exposed(false) {}
+sim::Configuration::Configuration() : m_exposed(false) {}
 
-void Configuration::resetSchema() { m_fields.clear(); }
+void sim::Configuration::resetSchema() { m_fields.clear(); }
 
-void Configuration::define(S2CMessage const &msg) {
+void sim::Configuration::define(S2CMessage const &msg) {
   ConfigField field;
   auto const buf = reinterpret_cast<char const *>(msg.configSchemaDefine.buf);
   field.type = msg.configSchemaDefine.type;
@@ -43,13 +43,13 @@ void Configuration::define(S2CMessage const &msg) {
   m_fields.push_back(field);
 }
 
-bool Configuration::isExposed() const { return m_exposed; }
+bool sim::Configuration::isExposed() const { return m_exposed; }
 
-void Configuration::setExposed(bool exposed) { m_exposed = exposed; }
+void sim::Configuration::setExposed(bool exposed) { m_exposed = exposed; }
 
-std::vector<ConfigField> &Configuration::getFields() { return m_fields; }
+std::vector<sim::ConfigField> &sim::Configuration::getFields() { return m_fields; }
 
-void Configuration::applyChanges(sim::Client &client) {
+void sim::Configuration::applyChanges(sim::Client &client) {
   for (auto &field : m_fields) {
     if (field.changed) {
       sendSetValue(client, field);
@@ -58,7 +58,7 @@ void Configuration::applyChanges(sim::Client &client) {
   }
 }
 
-void Configuration::saveToFile(std::string const &filename) {
+void sim::Configuration::saveToFile(std::string const &filename) {
   printf("Saving configuration to file: %s\n", filename.c_str());
 
   std::ofstream file(filename);
@@ -79,7 +79,7 @@ void Configuration::saveToFile(std::string const &filename) {
   printf("Finished saving configuration!\n");
 }
 
-void Configuration::loadFromFile(std::string const &filename) {
+void sim::Configuration::loadFromFile(std::string const &filename) {
   printf("Loading configuration from file: %s\n", filename.c_str());
 
   std::ifstream file(filename);
@@ -119,7 +119,7 @@ void Configuration::loadFromFile(std::string const &filename) {
   printf("Finished loading configuration!\n");
 }
 
-void Configuration::doFullConfigRead(sim::Client &client) {
+void sim::Configuration::doFullConfigRead(Client &client) {
   printf("Sending full config read to client\n");
   for (auto const &field : m_fields) {
     sendSetValue(client, field);
@@ -128,7 +128,7 @@ void Configuration::doFullConfigRead(sim::Client &client) {
   printf("Done sending full config read to client\n");
 }
 
-void Configuration::sendSetValue(sim::Client &client, ConfigField const &field) {
+void sim::Configuration::sendSetValue(Client &client, ConfigField const &field) {
   if (field.type == CONFIG_FIELD_TYPE_TEXT || field.type == CONFIG_FIELD_TYPE_PASSWORD) {
     client.sendConfigSetValue(field.name.c_str(), field.textValue);
   } else if (field.type == CONFIG_FIELD_TYPE_INT) {

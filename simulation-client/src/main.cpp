@@ -2,19 +2,20 @@
 
 #include <atomic>
 #include <memory>
+#include <sim/Controller.hpp>
 #include <string>
 #include <thread>
 
-#include "Configuration.hpp"
 #include "Dimensions.hpp"
 #include "imgui.h"
 #include "rlImGui.h"
 #include "sim/Client.hpp"
 #include "sim/ClientThread.hpp"
+#include "sim/Configuration.hpp"
 #include "sim/HardwareState.hpp"
 #include "sim/HttpProxy.hpp"
 
-static void resetStatus(Dimensions const &d, sim::HardwareState &hw, Image *screen, Configuration &config) {
+static void resetStatus(Dimensions const &d, sim::HardwareState &hw, Image *screen, sim::Configuration &config) {
   hw.partialReset(d.scale);
   ImageClearBackground(screen, M5_BG);
   config.loadFromFile(CONFIG_DEFAULT_PATH);
@@ -61,7 +62,52 @@ static void onWifiConnect(sim::Client &client, sim::HardwareState &hw, std::stri
   }
 }
 
-static void handleEvents(sim::Client &client, Dimensions const &d, sim::HardwareState &hw, Configuration &config, Image *screen) {
+static void registerHandlers(sim::Controller &ctrl, Dimensions const &d, Image *screen) {
+  ctrl.registerDefaultMessageHandlers();
+  ctrl.onMessage(S2COpcode::RESET,
+                 [d, screen](sim::Controller &c, S2CMessage const &) { resetStatus(d, c.getHardwareState(), screen, c.getConfig()); });
+  ctrl.onMessage(S2COpcode::LCD_CLEAR, [screen](sim::Controller &, S2CMessage const &) { ImageClearBackground(screen, M5_BG); });
+  ctrl.onMessage(S2COpcode::LCD_SET_CURSOR, [](sim::Controller &c, S2CMessage const &msg) {
+    c.getHardwareState().cursorX = msg.lcdSetCursor.x;
+    c.getHardwareState().cursorY = msg.lcdSetCursor.y;
+  });
+  ctrl.onMessage(S2COpcode::LCD_SET_TEXT_SIZE,
+                 [](sim::Controller &c, S2CMessage const &msg) { c.getHardwareState().fontSize = msg.lcdSetTextSize.size; });
+  ctrl.onMessage(S2COpcode::LCD_WRITE, [d, screen](sim::Controller &c, S2CMessage const &msg) {
+    writeToLcd(d, c.getHardwareState(), screen, reinterpret_cast<char const *>(msg.lcdWrite.buf), msg.lcdWrite.len);
+  });
+  ctrl.onMessage(S2COpcode::CONVEYOR_SET_SPEED, [](sim::Controller &c, S2CMessage const &msg) {
+    if (c.getHardwareState().conveyorEnabled) c.getHardwareState().conveyorSpeed = msg.conveyorSetSpeed;
+  });
+  ctrl.onMessage(S2COpcode::HTTP_BEGIN, [](sim::Controller &c, S2CMessage const &msg) {
+    c.getHardwareState().httpProxy.begin(msg.httpBegin.reqId, reinterpret_cast<char const *>(msg.httpBegin.host), msg.httpBegin.len,
+                                         msg.httpBegin.port);
+  });
+  ctrl.onMessage(S2COpcode::HTTP_WRITE, [](sim::Controller &c, S2CMessage const &msg) {
+    c.getHardwareState().httpProxy.append(msg.httpWrite.reqId, reinterpret_cast<char const *>(msg.httpWrite.buf), msg.httpWrite.len);
+  });
+  ctrl.onMessage(S2COpcode::HTTP_END,
+                 [](sim::Controller &c, S2CMessage const &msg) { c.getHardwareState().httpProxy.end(msg.httpEnd.reqId, c.getClient()); });
+  ctrl.onMessage(S2COpcode::NFC_GET_VERSION, [](sim::Controller &c, S2CMessage const &) {
+    if (c.getHardwareState().tagReaderEnabled) c.getClient().sendNfcSetVersion(I2CAddress{0, 0x28}, c.getHardwareState().tagReaderVersion);
+  });
+  ctrl.onMessage(S2COpcode::SORTER_SET_ANGLE, [](sim::Controller &c, S2CMessage const &msg) {
+    if (c.getHardwareState().sorterEnabled) c.getHardwareState().sorterAngle = msg.sorterSetAngle;
+  });
+  ctrl.onMessage(S2COpcode::WIFI_SET_MODE, [](sim::Controller &c, S2CMessage const &msg) {
+    if (c.getHardwareState().wifiEnabled) {
+      c.getHardwareState().wifiMode = static_cast<sim::wifi_mode_t>(msg.wifiSetMode);
+      c.getClient().sendWifiSetModeAck();
+    }
+  });
+  ctrl.onMessage(S2COpcode::WIFI_CONNECT, [](sim::Controller &c, S2CMessage const &msg) {
+    onWifiConnect(c.getClient(), c.getHardwareState(),
+                  std::string(reinterpret_cast<char const *>(msg.wifiConnect.buf), msg.wifiConnect.ssidLen),
+                  std::string(reinterpret_cast<char const *>(msg.wifiConnect.buf + msg.wifiConnect.ssidLen), msg.wifiConnect.passLen));
+  });
+}
+
+static void handleEvents(sim::Controller &ctrl, sim::HardwareState &hw, Dimensions const &d) {
   if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
     Vector2 mousePos = GetMousePosition();
     hw.btnADown = CheckCollisionPointRec(mousePos, d.btnARect);
@@ -75,79 +121,7 @@ static void handleEvents(sim::Client &client, Dimensions const &d, sim::Hardware
     hw.btnRDown = false;
   }
 
-  std::vector<S2CMessage> messages;
-  if (client.popFromServer(messages)) {
-    for (auto const &msg : messages) {
-      switch (msg.opcode) {
-        case S2COpcode::PONG:
-          break;
-        case S2COpcode::RESET:
-          resetStatus(d, hw, screen, config);
-          break;
-        case S2COpcode::LCD_CLEAR:
-          ImageClearBackground(screen, M5_BG);
-          break;
-        case S2COpcode::LCD_SET_CURSOR:
-          hw.cursorX = msg.lcdSetCursor.x;
-          hw.cursorY = msg.lcdSetCursor.y;
-          break;
-        case S2COpcode::LCD_SET_TEXT_SIZE:
-          hw.fontSize = msg.lcdSetTextSize.size * d.scale;
-          break;
-        case S2COpcode::LCD_WRITE:
-          writeToLcd(d, hw, screen, reinterpret_cast<char const *>(msg.lcdWrite.buf), msg.lcdWrite.len);
-          break;
-        case S2COpcode::CONVEYOR_SET_SPEED:
-          if (hw.conveyorEnabled) hw.conveyorSpeed = msg.conveyorSetSpeed;
-          break;
-        case S2COpcode::HTTP_BEGIN:
-          hw.httpProxy.begin(msg.httpBegin.reqId, reinterpret_cast<char const *>(msg.httpBegin.host), msg.httpBegin.len,
-                             msg.httpBegin.port);
-          break;
-        case S2COpcode::HTTP_WRITE:
-          hw.httpProxy.append(msg.httpWrite.reqId, reinterpret_cast<char const *>(msg.httpWrite.buf), msg.httpWrite.len);
-          break;
-        case S2COpcode::HTTP_END:
-          hw.httpProxy.end(msg.httpEnd.reqId, client);
-          break;
-        case S2COpcode::CONFIG_SCHEMA_RESET:
-          config.resetSchema();
-          break;
-        case S2COpcode::CONFIG_SCHEMA_DEFINE:
-          config.define(msg);
-          break;
-        case S2COpcode::CONFIG_SCHEMA_END_DEFINE:
-          config.loadFromFile(CONFIG_DEFAULT_PATH);
-          config.saveToFile(CONFIG_DEFAULT_PATH);
-          break;
-        case S2COpcode::CONFIG_SET_EXPOSED:
-          config.setExposed(msg.configSetExposed);
-          break;
-        case S2COpcode::CONFIG_FULL_READ_BEGIN:
-          config.doFullConfigRead(client);
-          break;
-        case S2COpcode::NFC_GET_VERSION:
-          if (hw.tagReaderEnabled) client.sendNfcSetVersion(I2CAddress{0, 0x28}, hw.tagReaderVersion);
-          break;
-        case S2COpcode::SORTER_SET_ANGLE:
-          if (hw.sorterEnabled) hw.sorterAngle = msg.sorterSetAngle;
-          break;
-        case S2COpcode::WIFI_SET_MODE:
-          if (hw.wifiEnabled) {
-            hw.wifiMode = static_cast<sim::wifi_mode_t>(msg.wifiSetMode);
-            client.sendWifiSetModeAck();
-          }
-          break;
-        case S2COpcode::WIFI_CONNECT:
-          onWifiConnect(
-              client, hw, std::string(reinterpret_cast<char const *>(msg.wifiConnect.buf), msg.wifiConnect.ssidLen),
-              std::string(reinterpret_cast<char const *>(msg.wifiConnect.buf + msg.wifiConnect.ssidLen), msg.wifiConnect.passLen));
-          break;
-        case S2COpcode::MAX_OPCODE:
-          break;
-      }
-    }
-  }
+  ctrl.step();
 }
 
 static void handleChange(sim::Client &client, sim::HardwareState const &next, sim::HardwareState const &prev) {
@@ -191,7 +165,7 @@ static void drawButtons(Dimensions const &d, sim::HardwareState const &hw) {
   DrawText("R", d.btnRRect.x + 13 * d.scale, d.btnRRect.y + 10 * d.scale, 20 * d.scale, hw.btnRDown ? WHITE : RED);
 }
 
-void drawGui(sim::Client &client, sim::HardwareState &hw, Configuration &config);
+void drawGui(sim::Client &client, sim::HardwareState &hw, sim::Configuration &config);
 
 int main() {
   SetTraceLogLevel(LOG_NONE);
@@ -202,12 +176,14 @@ int main() {
   rlImGuiSetup(true);
 
   Dimensions d(GetScreenWidth(), GetScreenHeight());
-  sim::HardwareState hw(d.scale);
-  Configuration config;
   Image screen = GenImageColor(d.m5Screen.width, d.m5Screen.height, M5_BG);
 
   sim::ClientThread clientThread;
-  sim::Client &client = clientThread.getClient();
+  std::shared_ptr<sim::Client> client = clientThread.getClient();
+
+  sim::Controller ctrl(client, std::shared_ptr<std::atomic<bool>>(), d.scale);
+
+  registerHandlers(ctrl, d, &screen);
 
   while (!WindowShouldClose()) {
     if (IsWindowResized()) {
@@ -216,13 +192,13 @@ int main() {
       int sh = GetScreenHeight();
       d = Dimensions(sw, sh);
       ImageResize(&screen, d.m5Screen.width, d.m5Screen.height);
-      hw.fontSize *= d.scale / oldScale;
+      ctrl.getHardwareState().fontSize *= d.scale / oldScale;
     }
 
-    sim::HardwareState newHw = hw;
-    handleEvents(client, d, newHw, config, &screen);
-    handleChange(client, newHw, hw);
-    hw = newHw;
+    sim::HardwareState newHw = ctrl.getHardwareState();
+    handleEvents(ctrl, newHw, d);
+    handleChange(*client, newHw, ctrl.getHardwareState());
+    ctrl.getHardwareState() = newHw;
 
     Texture2D screenTexture = LoadTextureFromImage(screen);
 
@@ -241,10 +217,10 @@ int main() {
     // M5 Screen
     DrawTexture(screenTexture, d.m5Screen.x, d.m5Screen.y, WHITE);
 
-    drawButtons(d, hw);
+    drawButtons(d, ctrl.getHardwareState());
 
     rlImGuiBegin();
-    drawGui(client, hw, config);
+    drawGui(*client, ctrl.getHardwareState(), ctrl.getConfig());
     rlImGuiEnd();
 
     EndDrawing();
