@@ -21,11 +21,35 @@ jobs:
             ~/.platformio/.cache
             .pio
           key: ${{ runner.os }}-pio
+          
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          
+      - name: Install APT dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libbsd-dev
+
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio
+        
+      - name: Download ESP32 Hosted Platform
+        uses: actions/checkout@v4
+        with:
+          repository: MisterPeModder/pio-esp32-hosted
+          path: ${{ github.workspace }}/esp32-hosted
+
+      - name: Install ESP32 Hosted Platform
+        run: |
+          mkdir -p /home/runner/.platformio/platforms
+          mv ${{ github.workspace }}/esp32-hosted /home/runner/.platformio/platforms/
 
       - name: Build PlatformIO m5stack-core2
         run: pio run --environment m5stack-core2
+        
+      - name: Build PlatformIO m5stack-simulated
+        run: pio run --environment m5stack-simulated
+
+      - name: Run Simulation Tests
+        run: pio test --environment testing -v
