@@ -1,9 +1,10 @@
 set(SOURCES
         Configuration.cpp
         gui.cpp
-        HttpProxy.cpp
         main.cpp
-        SimulationClient.cpp
+        ../../lib/SimControl/src/Client.cpp
+        ../../lib/SimControl/src/ClientThread.cpp
+        ../../lib/SimControl/src/HttpProxy.cpp
         ../imgui/imgui.cpp
         ../imgui/imgui_demo.cpp
         ../imgui/imgui_draw.cpp
@@ -13,6 +14,6 @@ set(SOURCES
 )
 
 add_executable(simulation-client ${SOURCES})
-target_include_directories(simulation-client PRIVATE . ../imgui ../rlImGui)
+target_include_directories(simulation-client PRIVATE . ../../lib/SimControl/include ../imgui ../rlImGui)
 
 target_link_libraries(simulation-client -lraylib)

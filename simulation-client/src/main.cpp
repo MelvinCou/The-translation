@@ -6,71 +6,73 @@
 #include <thread>
 
 #include "Configuration.hpp"
-#include "HttpProxy.hpp"
-#include "SimulationClient.hpp"
-#include "Status.hpp"
+#include "Dimensions.hpp"
 #include "imgui.h"
 #include "rlImGui.h"
+#include "sim/Client.hpp"
+#include "sim/ClientThread.hpp"
+#include "sim/HardwareState.hpp"
+#include "sim/HttpProxy.hpp"
 
-static void resetStatus(Dimensions const &d, Status &status, Image *screen, Configuration &config) {
-  status.partialReset(d);
+static void resetStatus(Dimensions const &d, sim::HardwareState &hw, Image *screen, Configuration &config) {
+  hw.partialReset(d.scale);
   ImageClearBackground(screen, M5_BG);
   config.loadFromFile(CONFIG_DEFAULT_PATH);
   printf("Reset state!\n");
 }
 
-static void writeToLcd(Dimensions const &d, Status &status, Image *screen, char const *buf, size_t len) {
+static void writeToLcd(Dimensions const &d, sim::HardwareState &hw, Image *screen, char const *buf, size_t len) {
   std::string text(buf, len);
 
   for (size_t i = 0; i < len; ++i) {
     char txtBuf[2] = {buf[i], '\0'};
 
     if (buf[i] == '\n') {
-      status.cursorX = 0;
-      status.cursorY += status.fontSize * 10;
+      hw.cursorX = 0;
+      hw.cursorY += hw.fontSize * 10;
     } else {
-      int textWidth = MeasureText(txtBuf, status.fontSize * 10) + status.fontSize;
-      if (status.cursorX + textWidth > d.m5Screen.width) {
-        status.cursorX = 0;
-        status.cursorY += status.fontSize * 10;
+      int textWidth = MeasureText(txtBuf, hw.fontSize * 10) + hw.fontSize;
+      if (hw.cursorX + textWidth > d.m5Screen.width) {
+        hw.cursorX = 0;
+        hw.cursorY += hw.fontSize * 10;
       } else {
-        ImageDrawText(screen, txtBuf, status.cursorX, status.cursorY, status.fontSize * 10, WHITE);
-        status.cursorX += textWidth;
+        ImageDrawText(screen, txtBuf, hw.cursorX, hw.cursorY, hw.fontSize * 10, WHITE);
+        hw.cursorX += textWidth;
       }
     }
   }
 }
 
-static void onWifiConnect(SimulationClient &client, Status &status, std::string const &ssid, std::string const &pass) {
-  if (!status.wifiEnabled) {
+static void onWifiConnect(sim::Client &client, sim::HardwareState &hw, std::string const &ssid, std::string const &pass) {
+  if (!hw.wifiEnabled) {
     fprintf(stderr, "Ignoring WiFi connection attempt: WiFi is disabled\n");
-  } else if (ssid != status.wifiSsid) {
-    fprintf(stderr, "Blocking WiFi connection attempt: SSID mismatch: expected [%s], got [%s]\n", status.wifiSsid, ssid.c_str());
-    status.wifiStatus = WL_NO_SSID_AVAIL;
-    client.sendWifiConnectResponse(WL_NO_SSID_AVAIL);
-  } else if (pass != status.wifiPass) {
-    fprintf(stderr, "Blocking WiFi connection attempt: Password mismatch: expected [%s], got [%s]\n", status.wifiPass, pass.c_str());
-    status.wifiStatus = WL_NO_SSID_AVAIL;
-    client.sendWifiConnectResponse(WL_NO_SSID_AVAIL);
+  } else if (ssid != hw.wifiSsid) {
+    fprintf(stderr, "Blocking WiFi connection attempt: SSID mismatch: expected [%s], got [%s]\n", hw.wifiSsid, ssid.c_str());
+    hw.wifiStatus = sim::WL_NO_SSID_AVAIL;
+    client.sendWifiConnectResponse(sim::WL_NO_SSID_AVAIL);
+  } else if (pass != hw.wifiPass) {
+    fprintf(stderr, "Blocking WiFi connection attempt: Password mismatch: expected [%s], got [%s]\n", hw.wifiPass, pass.c_str());
+    hw.wifiStatus = sim::WL_NO_SSID_AVAIL;
+    client.sendWifiConnectResponse(sim::WL_NO_SSID_AVAIL);
   } else {
     printf("Accepting WiFi connection attempt\n");
-    status.wifiStatus = WL_CONNECTED;
-    client.sendWifiConnectResponse(WL_CONNECTED);
+    hw.wifiStatus = sim::WL_CONNECTED;
+    client.sendWifiConnectResponse(sim::WL_CONNECTED);
   }
 }
 
-static void handleEvents(SimulationClient &client, Dimensions const &d, Status &status, Configuration &config, Image *screen) {
+static void handleEvents(sim::Client &client, Dimensions const &d, sim::HardwareState &hw, Configuration &config, Image *screen) {
   if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
     Vector2 mousePos = GetMousePosition();
-    status.btnADown = CheckCollisionPointRec(mousePos, d.btnARect);
-    status.btnBDown = CheckCollisionPointRec(mousePos, d.btnBRect);
-    status.btnCDown = CheckCollisionPointRec(mousePos, d.btnCRect);
-    status.btnRDown = CheckCollisionPointRec(mousePos, d.btnRRect);
+    hw.btnADown = CheckCollisionPointRec(mousePos, d.btnARect);
+    hw.btnBDown = CheckCollisionPointRec(mousePos, d.btnBRect);
+    hw.btnCDown = CheckCollisionPointRec(mousePos, d.btnCRect);
+    hw.btnRDown = CheckCollisionPointRec(mousePos, d.btnRRect);
   } else {
-    status.btnADown = false;
-    status.btnBDown = false;
-    status.btnCDown = false;
-    status.btnRDown = false;
+    hw.btnADown = false;
+    hw.btnBDown = false;
+    hw.btnCDown = false;
+    hw.btnRDown = false;
   }
 
   std::vector<S2CMessage> messages;
@@ -80,33 +82,33 @@ static void handleEvents(SimulationClient &client, Dimensions const &d, Status &
         case S2COpcode::PONG:
           break;
         case S2COpcode::RESET:
-          resetStatus(d, status, screen, config);
+          resetStatus(d, hw, screen, config);
           break;
         case S2COpcode::LCD_CLEAR:
           ImageClearBackground(screen, M5_BG);
           break;
         case S2COpcode::LCD_SET_CURSOR:
-          status.cursorX = msg.lcdSetCursor.x;
-          status.cursorY = msg.lcdSetCursor.y;
+          hw.cursorX = msg.lcdSetCursor.x;
+          hw.cursorY = msg.lcdSetCursor.y;
           break;
         case S2COpcode::LCD_SET_TEXT_SIZE:
-          status.fontSize = msg.lcdSetTextSize.size * d.scale;
+          hw.fontSize = msg.lcdSetTextSize.size * d.scale;
           break;
         case S2COpcode::LCD_WRITE:
-          writeToLcd(d, status, screen, reinterpret_cast<char const *>(msg.lcdWrite.buf), msg.lcdWrite.len);
+          writeToLcd(d, hw, screen, reinterpret_cast<char const *>(msg.lcdWrite.buf), msg.lcdWrite.len);
           break;
         case S2COpcode::CONVEYOR_SET_SPEED:
-          if (status.conveyorEnabled) status.conveyorSpeed = msg.conveyorSetSpeed;
+          if (hw.conveyorEnabled) hw.conveyorSpeed = msg.conveyorSetSpeed;
           break;
         case S2COpcode::HTTP_BEGIN:
-          status.httpProxy.begin(msg.httpBegin.reqId, reinterpret_cast<char const *>(msg.httpBegin.host), msg.httpBegin.len,
-                                 msg.httpBegin.port);
+          hw.httpProxy.begin(msg.httpBegin.reqId, reinterpret_cast<char const *>(msg.httpBegin.host), msg.httpBegin.len,
+                             msg.httpBegin.port);
           break;
         case S2COpcode::HTTP_WRITE:
-          status.httpProxy.append(msg.httpWrite.reqId, reinterpret_cast<char const *>(msg.httpWrite.buf), msg.httpWrite.len);
+          hw.httpProxy.append(msg.httpWrite.reqId, reinterpret_cast<char const *>(msg.httpWrite.buf), msg.httpWrite.len);
           break;
         case S2COpcode::HTTP_END:
-          status.httpProxy.end(msg.httpEnd.reqId, client);
+          hw.httpProxy.end(msg.httpEnd.reqId, client);
           break;
         case S2COpcode::CONFIG_SCHEMA_RESET:
           config.resetSchema();
@@ -125,20 +127,20 @@ static void handleEvents(SimulationClient &client, Dimensions const &d, Status &
           config.doFullConfigRead(client);
           break;
         case S2COpcode::NFC_GET_VERSION:
-          if (status.tagReaderEnabled) client.sendNfcSetVersion(I2CAddress{0, 0x28}, status.tagReaderVersion);
+          if (hw.tagReaderEnabled) client.sendNfcSetVersion(I2CAddress{0, 0x28}, hw.tagReaderVersion);
           break;
         case S2COpcode::SORTER_SET_ANGLE:
-          if (status.sorterEnabled) status.sorterAngle = msg.sorterSetAngle;
+          if (hw.sorterEnabled) hw.sorterAngle = msg.sorterSetAngle;
           break;
         case S2COpcode::WIFI_SET_MODE:
-          if (status.wifiEnabled) {
-            status.wifiMode = static_cast<wifi_mode_t>(msg.wifiSetMode);
+          if (hw.wifiEnabled) {
+            hw.wifiMode = static_cast<sim::wifi_mode_t>(msg.wifiSetMode);
             client.sendWifiSetModeAck();
           }
           break;
         case S2COpcode::WIFI_CONNECT:
           onWifiConnect(
-              client, status, std::string(reinterpret_cast<char const *>(msg.wifiConnect.buf), msg.wifiConnect.ssidLen),
+              client, hw, std::string(reinterpret_cast<char const *>(msg.wifiConnect.buf), msg.wifiConnect.ssidLen),
               std::string(reinterpret_cast<char const *>(msg.wifiConnect.buf + msg.wifiConnect.ssidLen), msg.wifiConnect.passLen));
           break;
         case S2COpcode::MAX_OPCODE:
@@ -148,7 +150,7 @@ static void handleEvents(SimulationClient &client, Dimensions const &d, Status &
   }
 }
 
-static void handleChange(SimulationClient &client, Status const &next, Status const &prev) {
+static void handleChange(sim::Client &client, sim::HardwareState const &next, sim::HardwareState const &prev) {
   if (next.btnADown != prev.btnADown) {
     client.sendSetButton(0, next.btnADown);
   }
@@ -164,17 +166,17 @@ static void handleChange(SimulationClient &client, Status const &next, Status co
   fflush(stdout);
 }
 
-static void drawButtons(Dimensions const &d, Status const &status) {
-  if (status.btnADown) {
+static void drawButtons(Dimensions const &d, sim::HardwareState const &hw) {
+  if (hw.btnADown) {
     DrawRectangleRec(d.btnARect, RED);
   }
-  if (status.btnBDown) {
+  if (hw.btnBDown) {
     DrawRectangleRec(d.btnBRect, RED);
   }
-  if (status.btnCDown) {
+  if (hw.btnCDown) {
     DrawRectangleRec(d.btnCRect, RED);
   }
-  if (status.btnRDown) {
+  if (hw.btnRDown) {
     DrawRectangleRec(d.btnRRect, RED);
   }
 
@@ -186,12 +188,10 @@ static void drawButtons(Dimensions const &d, Status const &status) {
   DrawText("A", d.btnARect.x + 13 * d.scale, d.btnARect.y + 10 * d.scale, 20 * d.scale, M5_BUTTON);
   DrawText("B", d.btnBRect.x + 13 * d.scale, d.btnBRect.y + 10 * d.scale, 20 * d.scale, M5_BUTTON);
   DrawText("C", d.btnCRect.x + 13 * d.scale, d.btnCRect.y + 10 * d.scale, 20 * d.scale, M5_BUTTON);
-  DrawText("R", d.btnRRect.x + 13 * d.scale, d.btnRRect.y + 10 * d.scale, 20 * d.scale, status.btnRDown ? WHITE : RED);
+  DrawText("R", d.btnRRect.x + 13 * d.scale, d.btnRRect.y + 10 * d.scale, 20 * d.scale, hw.btnRDown ? WHITE : RED);
 }
 
-static void runClient(std::shared_ptr<SimulationClient> const &client) { client->run(); }
-
-void drawGui(SimulationClient &client, Status &status, Configuration &config);
+void drawGui(sim::Client &client, sim::HardwareState &hw, Configuration &config);
 
 int main() {
   SetTraceLogLevel(LOG_NONE);
@@ -202,13 +202,12 @@ int main() {
   rlImGuiSetup(true);
 
   Dimensions d(GetScreenWidth(), GetScreenHeight());
-  Status status(d);
+  sim::HardwareState hw(d.scale);
   Configuration config;
   Image screen = GenImageColor(d.m5Screen.width, d.m5Screen.height, M5_BG);
 
-  auto stopToken = std::make_shared<std::atomic<bool>>(false);
-  auto client = std::make_shared<SimulationClient>(stopToken);
-  auto clientThread = std::thread(runClient, client);
+  sim::ClientThread clientThread;
+  sim::Client &client = clientThread.getClient();
 
   while (!WindowShouldClose()) {
     if (IsWindowResized()) {
@@ -217,13 +216,13 @@ int main() {
       int sh = GetScreenHeight();
       d = Dimensions(sw, sh);
       ImageResize(&screen, d.m5Screen.width, d.m5Screen.height);
-      status.fontSize *= d.scale / oldScale;
+      hw.fontSize *= d.scale / oldScale;
     }
 
-    Status newStatus = status;
-    handleEvents(*client, d, newStatus, config, &screen);
-    handleChange(*client, newStatus, status);
-    status = newStatus;
+    sim::HardwareState newHw = hw;
+    handleEvents(client, d, newHw, config, &screen);
+    handleChange(client, newHw, hw);
+    hw = newHw;
 
     Texture2D screenTexture = LoadTextureFromImage(screen);
 
@@ -242,10 +241,10 @@ int main() {
     // M5 Screen
     DrawTexture(screenTexture, d.m5Screen.x, d.m5Screen.y, WHITE);
 
-    drawButtons(d, status);
+    drawButtons(d, hw);
 
     rlImGuiBegin();
-    drawGui(*client, status, config);
+    drawGui(client, hw, config);
     rlImGuiEnd();
 
     EndDrawing();
@@ -253,8 +252,7 @@ int main() {
     UnloadTexture(screenTexture);
   }
   printf("Closing!\n");
-  stopToken->store(true);
-  clientThread.join();
+  clientThread.terminateAndJoin();
 
   UnloadImage(screen);
 

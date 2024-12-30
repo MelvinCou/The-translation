@@ -4,8 +4,8 @@
 #include <fstream>
 #include <unordered_map>
 
-#include "SimulationClient.hpp"
 #include "SimulationMessage.hpp"
+#include "sim/Client.hpp"
 
 ConfigField::ConfigField() : type(CONFIG_FIELD_TYPE_TEXT), textValue{} { memset(textValue, 0, sizeof(textValue)); }
 
@@ -49,7 +49,7 @@ void Configuration::setExposed(bool exposed) { m_exposed = exposed; }
 
 std::vector<ConfigField> &Configuration::getFields() { return m_fields; }
 
-void Configuration::applyChanges(SimulationClient &client) {
+void Configuration::applyChanges(sim::Client &client) {
   for (auto &field : m_fields) {
     if (field.changed) {
       sendSetValue(client, field);
@@ -119,7 +119,7 @@ void Configuration::loadFromFile(std::string const &filename) {
   printf("Finished loading configuration!\n");
 }
 
-void Configuration::doFullConfigRead(SimulationClient &client) {
+void Configuration::doFullConfigRead(sim::Client &client) {
   printf("Sending full config read to client\n");
   for (auto const &field : m_fields) {
     sendSetValue(client, field);
@@ -128,7 +128,7 @@ void Configuration::doFullConfigRead(SimulationClient &client) {
   printf("Done sending full config read to client\n");
 }
 
-void Configuration::sendSetValue(SimulationClient &client, ConfigField const &field) {
+void Configuration::sendSetValue(sim::Client &client, ConfigField const &field) {
   if (field.type == CONFIG_FIELD_TYPE_TEXT || field.type == CONFIG_FIELD_TYPE_PASSWORD) {
     client.sendConfigSetValue(field.name.c_str(), field.textValue);
   } else if (field.type == CONFIG_FIELD_TYPE_INT) {
