@@ -14,8 +14,14 @@ class Sorter {
   ~Sorter() = default;
 
   void begin();
-  void move(SorterDirection direction);
   void moveWithSpecificAngle(int angle);
+  int getCurrentAngle() const;
+  int getDesiredAngle() const;
+  void setDesiredAngle(SorterDirection direction);
+
+ private:
+  int m_desiredAngle;
+  int m_currentAngle;
 };
 
 #endif  // !defined(SORTER_HPP)
