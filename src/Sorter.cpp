@@ -9,21 +9,29 @@ GoPlus2 goPlus;
 void Sorter::begin() {
   goPlus.begin();
   goPlus.Servo_write_plusewidth(SORTER_SERVO_NUMBER, SORTER_SERVO_PULSE_WIDTH);
-  move(SorterDirection::RIGHT);
+  moveWithSpecificAngle(SORTER_SERVO_RIGHT_ANGLE);
+  m_currentAngle = SORTER_SERVO_RIGHT_ANGLE;
 }
 
-void Sorter::move(SorterDirection direction) {
+void Sorter::moveWithSpecificAngle(int angle) {
+  goPlus.Servo_write_angle(SORTER_SERVO_NUMBER, angle);
+  m_currentAngle = angle;
+}
+
+int Sorter::getCurrentAngle() const { return m_currentAngle; }
+
+int Sorter::getDesiredAngle() const { return m_desiredAngle; }
+
+void Sorter::setDesiredAngle(SorterDirection direction) {
   switch (direction) {
     case SorterDirection::LEFT:
-      goPlus.Servo_write_angle(SORTER_SERVO_NUMBER, SORTER_SERVO_LEFT_ANGLE);
+      m_desiredAngle = SORTER_SERVO_LEFT_ANGLE;
       break;
     case SorterDirection::MIDDLE:
-      goPlus.Servo_write_angle(SORTER_SERVO_NUMBER, SORTER_SERVO_MIDDLE_ANGLE);
+      m_desiredAngle = SORTER_SERVO_MIDDLE_ANGLE;
       break;
     case SorterDirection::RIGHT:
-      goPlus.Servo_write_angle(SORTER_SERVO_NUMBER, SORTER_SERVO_RIGHT_ANGLE);
+      m_desiredAngle = SORTER_SERVO_RIGHT_ANGLE;
       break;
   }
 }
-
-void Sorter::moveWithSpecificAngle(int angle) { goPlus.Servo_write_angle(SORTER_SERVO_NUMBER, angle); }

@@ -104,18 +104,30 @@ static void sortPackages(TaskContext *ctx) {
       case DolibarrClientStatus::ERROR:
         switch (static_cast<SorterDirection>(values->targetWarehouse)) {
           case SorterDirection::LEFT:
-            sorter.move(SorterDirection::LEFT);
+            sorter.setDesiredAngle(SorterDirection::LEFT);
             break;
           case SorterDirection::MIDDLE:
-            sorter.move(SorterDirection::MIDDLE);
+            sorter.setDesiredAngle(SorterDirection::MIDDLE);
             break;
           case SorterDirection::RIGHT:
-            sorter.move(SorterDirection::RIGHT);
+            sorter.setDesiredAngle(SorterDirection::RIGHT);
             break;
           default:
-            LOG_WARN("[SORT.] Invalide direction: %u\n", values->targetWarehouse);
-            sorter.move(SorterDirection::RIGHT);
+            LOG_WARN("[SORT.] Invalid direction: %u\n", values->targetWarehouse);
+            sorter.setDesiredAngle(SorterDirection::RIGHT);
             break;
+        }
+        if (sorter.getCurrentAngle() > sorter.getDesiredAngle()) {
+          do {
+            const int angle = sorter.getCurrentAngle() - 1;
+            sorter.moveWithSpecificAngle(angle);
+          } while (sorter.getCurrentAngle() > sorter.getDesiredAngle() && interruptibleTaskPauseMs(CHANGE_ANGLE_DELAY));
+
+        } else if (sorter.getCurrentAngle() < sorter.getDesiredAngle()) {
+          do {
+            const int angle = sorter.getCurrentAngle() + 1;
+            sorter.moveWithSpecificAngle(angle);
+          } while (sorter.getCurrentAngle() < sorter.getDesiredAngle() && interruptibleTaskPauseMs(CHANGE_ANGLE_DELAY));
         }
         break;
       case DolibarrClientStatus::CONFIGURING:
