@@ -16,5 +16,5 @@ jobs:
           sudo apt-get install --no-install-recommends -qqy clang-format
       - name: Check actual code formatting
         run: |
-          git ls-files | grep -v simulator-gui/rlImGui/ | grep -v simulator-gui/imgui/ | grep -e '\.cpp$' -e '\.hpp$' -e '\.c$' -e '\.h$' | xargs clang-format -i
+          ./scripts/format.sh
           git diff --exit-code
