@@ -13,7 +13,7 @@ This program communicates with the Translation simulation server using an Unix s
 - CMake
 - Ninja (optional)
 
-This project embeds [Dear ImGui v1.91.6](https://github.com/ocornut/imgui/tree/v1.91.6) and [rlImGui](https://github.com/raylib-extras/rlImGui) as Git submodules.
+This project embeds [Dear ImGui v1.91.6](https://github.com/ocornut/imgui/tree/v1.91.6) and [rlImGui](https://github.com/raylib-extras/rlImGui) as Git subtrees.
 
 ## Build
 
