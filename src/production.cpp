@@ -41,6 +41,7 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
   Conveyor &conveyor = ctx->getHardware()->conveyor;
   auto values = ctx->getSharedValues<ProductionValues>();
 
+  bool wasStopped = false;
   String tag = "";
   char *endptr;
   int base10tag;
@@ -50,6 +51,10 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
       case TagReaderStatus::READY:
 
         if (conveyor.getCurrentStatus() != ConveyorStatus::CANCELLED) {
+          if (wasStopped) {
+            wasStopped = false;
+            conveyor.start();
+          }
           conveyor.update();
         }
 
@@ -72,7 +77,12 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
           }
         }
         break;
-      default:
+      case TagReaderStatus::ERROR:
+        if (!wasStopped && conveyor.getCurrentStatus() == ConveyorStatus::RUNNING) {
+          wasStopped = true;
+          conveyor.stop();
+          conveyor.update();
+        }
         break;
     }
 
