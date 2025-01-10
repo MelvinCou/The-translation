@@ -17,7 +17,8 @@ void Hardware::begin() {
   sorter.begin();
   conveyor.begin(&Wire);
 
-  tagReader.begin(&Wire);
+  Wire1.begin(2, 5);
+  tagReader.begin(&Wire1);
   buttons.begin();
 
   // webConfigurator.reset();
