@@ -48,6 +48,11 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
   do {
     switch (tagReader.getStatus()) {
       case TagReaderStatus::READY:
+
+        if (conveyor.getCurrentStatus() != ConveyorStatus::CANCELLED) {
+          conveyor.update();
+        }
+
         if (tagReader.isNewTagPresent()) {
           unsigned char buffer[10];
           unsigned char size = tagReader.readTag(buffer);
@@ -71,9 +76,6 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
         break;
     }
 
-    if (conveyor.getCurrentStatus() != ConveyorStatus::CANCELLED) {
-      conveyor.update();
-    }
   } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
 
   LOG_DEBUG("[TAG] Stopped reading NFC tags\n");
