@@ -84,6 +84,8 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
           conveyor.update();
         }
         break;
+      default:
+        break;
     }
 
   } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));

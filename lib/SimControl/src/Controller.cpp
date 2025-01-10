@@ -58,7 +58,7 @@ void sim::Controller::registerDefaultReceiveHandlers() {
   onReceive(S2COpcode::CONFIG_SET_EXPOSED, [](Controller &c, S2CMessage const &msg) { c.getConfig().setExposed(msg.configSetExposed); });
   onReceive(S2COpcode::CONFIG_FULL_READ_BEGIN, [](Controller &c, S2CMessage const &) { c.getConfig().doFullConfigRead(c.getClient()); });
   onReceive(S2COpcode::NFC_GET_VERSION,
-            [](sim::Controller &c, S2CMessage const &) { c.getClient().sendNfcSetVersion(I2CAddress{0, 0x28}, 0x88); });
+            [](sim::Controller &c, S2CMessage const &) { c.getClient().sendNfcSetVersion(I2CAddress{1, 0x28}, 0x88); });
 }
 
 bool sim::Controller::expectReceive(S2COpcode opcode, std::function<void()> const &scope, S2CMessage *msg,
