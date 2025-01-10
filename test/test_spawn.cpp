@@ -28,7 +28,7 @@ TEST_CASE("Spawn TheTranslation") {
     CHECK_GT(message.conveyorSetSpeed, 0);
 
     // Conveyor should stop when 'C' is pressed
-    bool stopped = ctrl->expectReceive(S2COpcode::CONVEYOR_SET_SPEED, [ctrl] { ctrl->pressButton(1); }, &message);
+    bool stopped = ctrl->expectReceive(S2COpcode::CONVEYOR_SET_SPEED, [ctrl] { ctrl->pressButton(2); }, &message);
     REQUIRE_UNARY(stopped);
     CHECK_EQ(message.conveyorSetSpeed, 0);
   }
