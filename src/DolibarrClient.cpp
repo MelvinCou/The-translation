@@ -94,7 +94,7 @@ DolibarrClientStatus DolibarrClient::sendTag(const int barcode, int& product, in
     client.end();
     status = DolibarrClientStatus::ERROR;
 
-    LOG_ERROR("[HTTP] Error during sendTag request: %s\n", client.errorToString(httpCode).c_str());
+    LOG_ERROR("[HTTP] Error during sendTag request: %d (%s)\n", httpCode, client.errorToString(httpCode).c_str());
 
     warehouse = m_errorWarehouse;
   }
@@ -127,7 +127,7 @@ DolibarrClientStatus DolibarrClient::sendStockMovement(int warehouse, int produc
   } else {
     status = DolibarrClientStatus::ERROR;
 
-    LOG_ERROR("[HTTP] Error during sendTag request: %s\n", client.errorToString(httpCode).c_str());
+    LOG_ERROR("[HTTP] Error during sendTag request: %d (%s)\n", httpCode, client.errorToString(httpCode).c_str());
   }
 
   return status;

@@ -170,7 +170,9 @@ static void makeHttpRequests(TaskContext *ctx) {
   }
   LOG_INFO("\n[HTTP] Connected!\n");
 
-  int product = 0, warehouse = 0, tag = 0;
+  int product = 0;
+  int warehouse = 0;
+  int tag = 0;
   bool newTag = false;
   values->dolibarrClientStatus =
       dolibarrClient.configure(webConfigurator.getApiUrl(), webConfigurator.getApiKey(), webConfigurator.getApiWarehouseError());
