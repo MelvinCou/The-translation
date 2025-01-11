@@ -16,12 +16,14 @@
 static void readButtons(TaskContext *ctx) {
   Buttons &buttons = ctx->getHardware()->buttons;
   Conveyor &conveyor = ctx->getHardware()->conveyor;
+  TagReader &tagReader = ctx->getHardware()->tagReader;
 
   do {
     buttons.update();
     if (buttons.BtnA->wasPressed()) {
       LOG_DEBUG("[BTN] A pressed\n");
       conveyor.start();
+      tagReader.setIsStuck(false);
     } else if (buttons.BtnC->wasPressed()) {
       LOG_DEBUG("[BTN] C pressed\n");
       conveyor.stop();
@@ -45,6 +47,8 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
   String tag = "";
   char *endptr;
   int base10tag;
+  int consecutiveTagRead = 0;
+  int lastTagReadTick = 0;
 
   do {
     switch (tagReader.getStatus()) {
@@ -59,22 +63,36 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
         }
 
         if (tagReader.isNewTagPresent()) {
-          unsigned char buffer[10];
-          unsigned char size = tagReader.readTag(buffer);
-          if (size > 0) {
-            tag = "";
-            for (unsigned char i = 0; i < size; i++) {
-              char two[3];
-              sniprintf(two, sizeof(two), "%02x", buffer[i]);
-              tag += two;
-            }
-            taskENTER_CRITICAL(&values->subTaskLock);
-            base10tag = strtol(tag.c_str(), &endptr, 16);
-            values->tags.push(&base10tag);
-            taskEXIT_CRITICAL(&values->subTaskLock);
+          const int currentTick = millis();
+          LOG_TRACE("[TAG] lastTagReadTick %u ; currentTick %u\n", lastTagReadTick, currentTick);
 
-            LOG_INFO("[TAG] New Tag %s\n", tag.c_str());
+          if (lastTagReadTick + TAG_READER_INTERVAL * 2 <= currentTick) {
+            consecutiveTagRead = 0;
+
+            unsigned char buffer[10];
+            unsigned char size = tagReader.readTag(buffer);
+            if (size > 0) {
+              tag = "";
+              for (unsigned char i = 0; i < size; i++) {
+                char two[3];
+                sniprintf(two, sizeof(two), "%02x", buffer[i]);
+                tag += two;
+              }
+              taskENTER_CRITICAL(&values->subTaskLock);
+              base10tag = strtol(tag.c_str(), &endptr, 16);
+              values->tags.push(&base10tag);
+              taskEXIT_CRITICAL(&values->subTaskLock);
+
+              LOG_INFO("[TAG] New Tag %s\n", tag.c_str());
+            }
+          } else {
+            consecutiveTagRead++;
+            if (consecutiveTagRead >= TAG_READER_MAX_CONSECUTIVE_READS) {
+              LOG_ERROR("[TAG] A product is stuck!\n");
+              tagReader.setIsStuck(true);
+            }
           }
+          lastTagReadTick = currentTick;
         }
         break;
       case TagReaderStatus::ERROR:
