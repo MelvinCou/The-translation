@@ -25,9 +25,12 @@ class TagReader {
 
   TagReaderStatus getStatus();
 
+  void setIsStuck(const bool isStuck);
+
  private:
   MFRC522_I2C *m_mfrc522;
   TagReaderStatus m_status;
+  bool m_isStuck;
 };
 
 #endif  // !defined(TAG_READER_HPP)
