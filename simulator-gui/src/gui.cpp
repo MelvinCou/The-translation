@@ -3,6 +3,9 @@
 #include "sim/Configuration.hpp"
 #include "sim/HardwareState.hpp"
 
+#define TAG_READER_I2C_BUS 1
+#define EOL_READER_I2C_BUS 1
+
 static void helpMarker(const char *desc) {
   ImGui::SameLine();
   ImGui::TextDisabled("(?)");
@@ -71,10 +74,10 @@ static void hardwareSectionTagReader(sim::Client &client, sim::HardwareState &hw
   ImGui::InputScalar("Version", ImGuiDataType_U8, &hw.tagReaderVersion, nullptr, nullptr, "%x", 0);
   if (ImGui::Button("Send")) {
     if (hw.tagReaderUid == 0) {
-      client.sendNfcSetCard(I2CAddress{0, 0x28}, "", 0);
+      client.sendNfcSetCard(I2CAddress{TAG_READER_I2C_BUS, 0x28}, "", 0);
     } else {
       std::vector<char> uid = uint64ToBigEndianBytes(hw.tagReaderUid);
-      client.sendNfcSetCard(I2CAddress{0, 0x28}, uid.data(), uid.size());
+      client.sendNfcSetCard(I2CAddress{TAG_READER_I2C_BUS, 0x28}, uid.data(), uid.size());
     }
   }
   ImGui::SameLine();
@@ -89,10 +92,10 @@ static void hardwareSectionEndOfLineReader(sim::Client &client, sim::HardwareSta
   ImGui::InputScalar("Version", ImGuiDataType_U8, &hw.tagReaderVersion, nullptr, nullptr, "%x", 0);
   if (ImGui::Button("Send")) {
     if (hw.tagReaderUid == 0) {
-      client.sendNfcSetCard(I2CAddress{1, 0x28}, "", 0);
+      client.sendNfcSetCard(I2CAddress{EOL_READER_I2C_BUS, 0x28}, "", 0);
     } else {
       std::vector<char> uid = uint64ToBigEndianBytes(hw.tagReaderUid);
-      client.sendNfcSetCard(I2CAddress{1, 0x28}, uid.data(), uid.size());
+      client.sendNfcSetCard(I2CAddress{EOL_READER_I2C_BUS, 0x28}, uid.data(), uid.size());
     }
   }
   ImGui::SameLine();

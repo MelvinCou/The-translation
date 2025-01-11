@@ -32,7 +32,7 @@
 
 #pragma region "tag reader configuration"
 #define TAG_READER_INTERVAL 100              //< Read interval in milliseconds
-#define TAG_READER_TEST_INTERVAL 1000 * 5   //< Test interval in milliseconds
+#define TAG_READER_TEST_INTERVAL 1000 * 5    //< Test interval in milliseconds
 #define TAG_READER_MAX_CONSECUTIVE_READS 10  //< maximum number of consecutive reads before considering a product stuck
 #pragma endregion "tag reader configuration"
 
