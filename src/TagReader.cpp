@@ -1,6 +1,7 @@
 #include "TagReader.hpp"
 
 void TagReader::begin(TwoWire *wire) {
+  m_isStuck = false;
   m_status = TagReaderStatus::CONFIGURING;
   m_mfrc522 = new MFRC522_I2C(0x28, 0, wire);
   m_mfrc522->PCD_Init();
@@ -22,6 +23,11 @@ unsigned char TagReader::readTag(unsigned char *buffer) {
 }
 
 void TagReader::selfTest() {
+  if (m_isStuck) {
+    m_status = TagReaderStatus::ERROR;
+    return;
+  }
+
   m_status = TagReaderStatus::CONFIGURING;
   byte version = m_mfrc522->PCD_ReadRegister(MFRC522_I2C::PCD_Register::VersionReg);
   switch (version) {
@@ -39,3 +45,5 @@ void TagReader::selfTest() {
 }
 
 TagReaderStatus TagReader::getStatus() { return m_status; }
+
+void TagReader::setIsStuck(const bool isStuck) { m_isStuck = isStuck; }
