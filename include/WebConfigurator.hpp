@@ -29,6 +29,8 @@ class WebConfigurator {
 
   int getConveyorSpeed();
 
+  float getEolSensorThreshold();
+
  private:
   WebServer m_server;
   WebConfig m_conf;

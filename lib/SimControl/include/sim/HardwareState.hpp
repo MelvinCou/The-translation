@@ -27,6 +27,8 @@ struct HardwareState {
   wl_status_t wifiStatus;
   char wifiSsid[32];
   char wifiPass[32];
+  float eolSensorDistance;
+  bool eolSensorEnabled;
 
   explicit HardwareState(float scale)
       : btnADown(false),
@@ -47,7 +49,9 @@ struct HardwareState {
         wifiMode(WIFI_MODE_NULL),
         wifiStatus(WL_IDLE_STATUS),
         wifiSsid("Fake WiFi"),
-        wifiPass("azerty") {}
+        wifiPass("azerty"),
+        eolSensorDistance(9999.f),
+        eolSensorEnabled(true) {}
 
   void partialReset(float scale) {
     btnADown = false;

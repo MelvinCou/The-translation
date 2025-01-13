@@ -294,3 +294,9 @@ void sim::Client::sendWifiConnectResponse(wl_status_t status) {
   msg.wifiConnectResponse = status;
   pushToServer(std::move(msg));
 }
+
+void sim::Client::sendEolSensorReadEnd(float distance) {
+  C2SMessage msg{C2SOpcode::EOL_SENSOR_READ_END, {}};
+  msg.eolSensorReadEnd = distance;
+  pushToServer(std::move(msg));
+}

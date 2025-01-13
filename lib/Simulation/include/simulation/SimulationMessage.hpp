@@ -16,6 +16,7 @@ enum class C2SOpcode : uint8_t {
   NFC_SET_CARD,
   WIFI_SET_MODE_ACK,
   WIFI_CONNECT_RESPONSE,
+  EOL_SENSOR_READ_END,
   MAX_OPCODE,
 };
 
@@ -69,6 +70,7 @@ struct __attribute__((packed)) C2SMessage {
       uint8_t uid[10];
     } nfcSetCard;
     int wifiConnectResponse;
+    float eolSensorReadEnd;
   };
 
   /// @return The total length of the message in bytes (header + payload)
@@ -108,6 +110,8 @@ struct __attribute__((packed)) C2SMessage {
         return std::min(static_cast<size_t>(nfcSetCard.uidLen), sizeof(nfcSetCard.uid));
       case C2SOpcode::WIFI_CONNECT_RESPONSE:
         return sizeof(wifiConnectResponse);
+      case C2SOpcode::EOL_SENSOR_READ_END:
+        return sizeof(eolSensorReadEnd);
       default:
         return 0;
     }
@@ -140,6 +144,8 @@ struct __attribute__((packed)) C2SMessage {
         return "WIFI_SET_MODE_ACK";
       case C2SOpcode::WIFI_CONNECT_RESPONSE:
         return "WIFI_CONNECT_RESPONSE";
+      case C2SOpcode::EOL_SENSOR_READ_END:
+        return "EOL_SENSOR_READ_END";
       case C2SOpcode::MAX_OPCODE:
         return "UNKNOWN";
     }
@@ -167,6 +173,7 @@ enum class S2COpcode : uint8_t {
   SORTER_SET_ANGLE,
   WIFI_SET_MODE,
   WIFI_CONNECT,
+  EOL_SENSOR_READ_BEGIN,
   MAX_OPCODE,
 };
 
@@ -302,6 +309,8 @@ struct __attribute__((packed)) S2CMessage {
         return "WIFI_SET_MODE";
       case S2COpcode::WIFI_CONNECT:
         return "WIFI_CONNECT";
+      case S2COpcode::EOL_SENSOR_READ_BEGIN:
+        return "EOL_SENSOR_READ_BEGIN";
       case S2COpcode::MAX_OPCODE:
         return "UNKNOWN";
     }

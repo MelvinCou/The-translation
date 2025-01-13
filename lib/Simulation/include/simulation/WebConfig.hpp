@@ -33,10 +33,11 @@ class WebConfig {
 
   const char* getValue(const char* name);
   int getInt(const char* name);
+  float getFloat(const char* name);
 
  private:
   std::unordered_map<String, String> m_strings;
-  std::unordered_map<String, int> m_ints;
+  std::unordered_map<String, double> m_numbers;
 
   bool popValueChange(bool cancelOnFullReadEnd);
 

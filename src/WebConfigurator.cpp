@@ -11,6 +11,8 @@
 
 #define CONVEYOR_SPEED "conveyor_speed"
 
+#define EOL_SENSOR_THRESHOLD "eol_sensor_threshold"
+
 // clang-format off
 
 const String params = "["
@@ -51,6 +53,13 @@ const String params = "["
     "'type':"+String(INPUTNUMBER)+","
     "'min':200,'max':1000,"
     "'default':'350'"
+  "},"
+  "{"
+    "'name':'"+EOL_SENSOR_THRESHOLD+"',"
+    "'label':'Max distance (in cm) for object detection',"
+    "'type':"+String(INPUTNUMBER)+","
+    "'min':0,'max':400,"
+    "'default':'2'"
   "}"
   "]";
 
@@ -89,3 +98,5 @@ const char* WebConfigurator::getApiKey() { return m_conf.getValue(API_KEY); }
 int WebConfigurator::getApiWarehouseError() { return m_conf.getInt(API_WAREHOUSE); }
 
 int WebConfigurator::getConveyorSpeed() { return m_conf.getInt(CONVEYOR_SPEED); }
+
+float WebConfigurator::getEolSensorThreshold() { return m_conf.getFloat(EOL_SENSOR_THRESHOLD); }

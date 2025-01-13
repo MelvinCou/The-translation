@@ -55,4 +55,11 @@
 #define CHANGE_ANGLE_DELAY 30
 #pragma endregion "maintenance mode"
 
+#pragma region "end of line sensor configuration"
+#define EOL_SENSOR_INTERVAL 100          //< Read interval in milliseconds
+#define EOL_SENSOR_TRIGGER_PIN 16        //< Trigger GPIO pin of the HCSR04 sensor
+#define EOL_SENSOR_ECHO_PIN 17           //< Echo GPIO pin of the HCSR04 sensor
+#define EOL_SENSOR_READ_TIMEOUT 1000000  //< Read timeout in microseconds
+#pragma endregion "tag reader configuration"
+
 #endif  // !defined(THE_TRANSLATION_CONFIG_HPP)
