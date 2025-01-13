@@ -85,21 +85,12 @@ static void hardwareSectionTagReader(sim::Client &client, sim::HardwareState &hw
   ImGui::PopID();
 }
 
-static void hardwareSectionEndOfLineReader(sim::Client &client, sim::HardwareState &hw) {
+static void hardwareSectionEndOfLineReader(sim::HardwareState &hw) {
   ImGui::PushID(3);
   ImGui::SeparatorText("End of Line Reader");
-  ImGui::Checkbox("Enable", &hw.tagReaderEnabled);
-  ImGui::InputScalar("Version", ImGuiDataType_U8, &hw.tagReaderVersion, nullptr, nullptr, "%x", 0);
-  if (ImGui::Button("Send")) {
-    if (hw.tagReaderUid == 0) {
-      client.sendNfcSetCard(I2CAddress{EOL_READER_I2C_BUS, 0x28}, "", 0);
-    } else {
-      std::vector<char> uid = uint64ToBigEndianBytes(hw.tagReaderUid);
-      client.sendNfcSetCard(I2CAddress{EOL_READER_I2C_BUS, 0x28}, uid.data(), uid.size());
-    }
-  }
-  ImGui::SameLine();
-  ImGui::InputScalar("UID", ImGuiDataType_U64, &hw.tagReaderUid, nullptr, nullptr, "%x", 0);
+  ImGui::Checkbox("Enable", &hw.eolSensorEnabled);
+  ImGui::InputScalar("Distance", ImGuiDataType_Float, &hw.eolSensorDistance, nullptr, nullptr, "%.2f", 0);
+  helpMarker("Nearest surface from sensor, in cm");
   ImGui::PopID();
 }
 
@@ -138,7 +129,7 @@ static void hardwareSectionWifi(sim::HardwareState &hw) {
 static void hardwareSection(sim::Client &client, sim::HardwareState &hw) {
   hardwareSectionM5Stack(client, hw);
   hardwareSectionTagReader(client, hw);
-  hardwareSectionEndOfLineReader(client, hw);
+  hardwareSectionEndOfLineReader(hw);
   hardwareSectionConveyor(hw);
   hardwareSectionSorter(hw);
   hardwareSectionWifi(hw);

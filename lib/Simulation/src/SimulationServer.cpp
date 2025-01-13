@@ -9,6 +9,7 @@
 
 #include <cerrno>
 #include <cstdlib>
+#include <utility>
 #include <vector>
 
 #define TAG "SimServer"
@@ -23,7 +24,8 @@ SimulationServer::SimulationServer()
       m_hasQueuedConfigRead(false),
       m_wifiOnSetModeAckHandler([] {}),
       m_wifiOnConnectResponseHandler([](int) {}),
-      m_httpOnResponseHandler([](uint32_t, std::vector<char>) {}) {}
+      m_httpOnResponseHandler([](uint32_t, std::vector<char>) {}),
+      m_eolSensorOnReadEndHandler([](float) {}) {}
 
 void SimulationServer::registerButton(int id, std::shared_ptr<std::atomic<bool>> const& isPressed) {
   switch (id) {
@@ -43,16 +45,20 @@ void SimulationServer::registerButton(int id, std::shared_ptr<std::atomic<bool>>
 
 void SimulationServer::registerNfc(I2CAddress addr, std::function<void(C2SMessage const&)> handler) {
   std::unique_lock<std::mutex> lock(m_nfcLock);
-  m_nfcHandlers[static_cast<uint16_t>(addr)] = handler;
+  m_nfcHandlers[static_cast<uint16_t>(addr)] = std::move(handler);
 }
 
-void SimulationServer::registerWifiOnSetModeAck(std::function<void()> handler) { m_wifiOnSetModeAckHandler = handler; }
+void SimulationServer::registerWifiOnSetModeAck(std::function<void()> handler) { m_wifiOnSetModeAckHandler = std::move(handler); }
 
-void SimulationServer::registerWifiOnConnectResponse(std::function<void(int)> handler) { m_wifiOnConnectResponseHandler = handler; }
+void SimulationServer::registerWifiOnConnectResponse(std::function<void(int)> handler) {
+  m_wifiOnConnectResponseHandler = std::move(handler);
+}
 
 void SimulationServer::registerHttpOnResponse(std::function<void(uint32_t, std::vector<char>)> handler) {
-  m_httpOnResponseHandler = handler;
+  m_httpOnResponseHandler = std::move(handler);
 }
+
+void SimulationServer::registerEolSensorOnReadEnd(std::function<void(float)> handler) { m_eolSensorOnReadEndHandler = std::move(handler); }
 
 void SimulationServer::pushToClient(S2CMessage&& msg) {
   std::unique_lock<std::mutex> lock(m_queueLock);
@@ -344,6 +350,8 @@ int SimulationServer::doProcess() {
     m_wifiOnSetModeAckHandler();
   } else if (msg.opcode == C2SOpcode::WIFI_CONNECT_RESPONSE) {
     m_wifiOnConnectResponseHandler(msg.wifiConnectResponse);
+  } else if (msg.opcode == C2SOpcode::EOL_SENSOR_READ_END) {
+    m_eolSensorOnReadEndHandler(msg.eolSensorReadEnd);
   }
   return 0;
 }
@@ -469,5 +477,10 @@ void SimulationServer::sendWifiConnect(char const* ssid, char const* pass) {
   memcpy(msg.wifiConnect.buf, ssid, msg.wifiConnect.ssidLen);
   memcpy(msg.wifiConnect.buf + msg.wifiConnect.ssidLen, pass, msg.wifiConnect.passLen);
   ESP_LOGW(TAG, "Sending wifi connect message: [%s] [%s]", ssid, pass);
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendEolSensorReadBegin() {
+  S2CMessage msg{S2COpcode::EOL_SENSOR_READ_BEGIN, {}};
   pushToClient(std::move(msg));
 }

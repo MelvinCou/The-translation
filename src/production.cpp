@@ -221,6 +221,16 @@ static void makeHttpRequests(TaskContext *ctx) {
   }
 }
 
+static void readEolSensor(TaskContext *ctx) {
+  EolSensor &eolSensor = ctx->getHardware()->eolSensor;
+  do {
+    if (eolSensor.hasObject()) {
+      // TODO: add actual logic here
+      LOG_INFO("[EOL] Object detected\n");
+    }
+  } while (interruptibleTaskPauseMs(EOL_SENSOR_INTERVAL));
+}
+
 void startProductionMode(TaskContext *ctx) {
   LOG_INFO("Starting production mode\n");
 
@@ -231,6 +241,7 @@ void startProductionMode(TaskContext *ctx) {
   spawnSubTask(testTagReader, ctx);
   spawnSubTask(makeHttpRequests, ctx);
   spawnSubTask(sortPackages, ctx);
+  spawnSubTask(readEolSensor, ctx);
 
   M5.Lcd.clearDisplay();
   M5.Lcd.setCursor(0, 0);

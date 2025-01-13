@@ -20,6 +20,7 @@ class SimulationServer {
   void registerWifiOnSetModeAck(std::function<void()> handler);
   void registerWifiOnConnectResponse(std::function<void(int)> handler);
   void registerHttpOnResponse(std::function<void(uint32_t, std::vector<char>)> handler);
+  void registerEolSensorOnReadEnd(std::function<void(float)> handler);
 
   void pushToClient(S2CMessage &&msg);
   bool popConfigRead(C2SMessage &msg);
@@ -45,6 +46,7 @@ class SimulationServer {
   void sendSorterSetAngle(uint32_t angle);
   void sendWifiSetMode(int mode);
   void sendWifiConnect(char const *ssid, char const *pass);
+  void sendEolSensorReadBegin();
 
  private:
   // server state machine
@@ -90,6 +92,7 @@ class SimulationServer {
   std::function<void()> m_wifiOnSetModeAckHandler;
   std::function<void(int)> m_wifiOnConnectResponseHandler;
   std::function<void(uint32_t, std::vector<char>)> m_httpOnResponseHandler;
+  std::function<void(float)> m_eolSensorOnReadEndHandler;
 };
 
 #define SIM_SOCKET_PATH "/tmp/the-translation.sock"

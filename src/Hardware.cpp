@@ -5,7 +5,7 @@
 #include "Logger.hpp"
 #include "TheTranslationConfig.hpp"
 
-Hardware::Hardware() : tagReader() {}
+Hardware::Hardware() : sorter(), tagReader(), eolSensor(), dolibarrClient() {}
 
 void Hardware::begin() {
   Serial.begin(115200);
@@ -23,6 +23,8 @@ void Hardware::begin() {
 
   // webConfigurator.reset();
   webConfigurator.configure();
+
+  eolSensor.begin(webConfigurator.getEolSensorThreshold());
 
   LOG_DEBUG("[HAL] Fully initialized\n");
 }
