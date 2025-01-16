@@ -57,7 +57,7 @@ DolibarrClientStatus DolibarrClient::configure(const char* endpoint, const char*
 
 DolibarrClientStatus DolibarrClient::getStatus() const { return status; }
 
-DolibarrClientStatus DolibarrClient::sendTag(const int barcode, int& product, int& warehouse) {
+DolibarrClientStatus DolibarrClient::sendTag(uint64_t barcode, int& product, int& warehouse) {
   status = DolibarrClientStatus::SENDING;
 
   String endpoint = String(m_tagEndpoint);
@@ -85,7 +85,7 @@ DolibarrClientStatus DolibarrClient::sendTag(const int barcode, int& product, in
       product = doc[0]["id"].as<int>();
       warehouse = doc[0]["fk_default_warehouse"].as<int>();
 
-      LOG_DEBUG("[HTTP] barecode %u: id %u ; warehouse %u \n", barcode, product, warehouse);
+      LOG_DEBUG("[HTTP] barcode %lu: id %u ; warehouse %u \n", barcode, product, warehouse);
       status = DolibarrClientStatus::READY;
     }
 

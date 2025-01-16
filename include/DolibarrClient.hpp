@@ -33,7 +33,7 @@ class DolibarrClient {
   /// @param barcode barcode of the product
   /// @param[out] product product id associeted with the barcode
   /// @param[out] warehouse default warehouse of the product
-  DolibarrClientStatus sendTag(const int barcode, int& product, int& warehouse);
+  DolibarrClientStatus sendTag(uint64_t barcode, int& product, int& warehouse);
 
   /// @brief Create a stock movement
   /// @param warehouse

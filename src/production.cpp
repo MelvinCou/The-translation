@@ -13,6 +13,29 @@
 #include "production/ProductionValues.hpp"
 #include "taskUtil.hpp"
 
+static void displayProductionModeText() {
+  M5.Lcd.clearDisplay();
+  M5.Lcd.setCursor(0, 0);
+  M5.Lcd.println("= Production Mode =");
+  M5.Lcd.println("A: Start B: Mode C: Stop");
+}
+
+static void reportStoppingError(Conveyor &conveyor, char const *msg) {
+  LOG_ERROR("[CONV] Stopping conveyor: %s\n", msg);
+  M5.Lcd.setTextColor(TFT_RED);
+  M5.Lcd.println(msg);
+  M5.Lcd.setTextColor(TFT_WHITE);
+  M5.Lcd.println("Press 'A' to resume");
+  conveyor.stop();
+}
+
+static void flushQueues(ProductionValues *values) {
+  taskENTER_CRITICAL(&values->subTaskLock);
+  values->inboundTags.flush();
+  values->outboundDirs.flush();
+  taskEXIT_CRITICAL(&values->subTaskLock);
+}
+
 static void readButtons(TaskContext *ctx) {
   Buttons &buttons = ctx->getHardware()->buttons;
   Conveyor &conveyor = ctx->getHardware()->conveyor;
@@ -22,6 +45,7 @@ static void readButtons(TaskContext *ctx) {
     buttons.update();
     if (buttons.BtnA->wasPressed()) {
       LOG_DEBUG("[BTN] A pressed\n");
+      displayProductionModeText();
       conveyor.start();
       tagReader.setIsStuck(false);
       tagReader.selfTest();
@@ -45,11 +69,8 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
   auto values = ctx->getSharedValues<ProductionValues>();
 
   bool wasStopped = false;
-  String tag = "";
-  char *endptr;
-  int base10tag;
   int consecutiveTagRead = 0;
-  int lastTagReadTick = 0;
+  unsigned long lastTagReadTick = 0;
 
   do {
     switch (tagReader.getStatus()) {
@@ -57,6 +78,7 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
 
         if (conveyor.getCurrentStatus() != ConveyorStatus::CANCELLED) {
           if (wasStopped) {
+            displayProductionModeText();
             wasStopped = false;
             conveyor.start();
           }
@@ -64,8 +86,8 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
         }
 
         if (tagReader.isNewTagPresent()) {
-          const int currentTick = millis();
-          LOG_TRACE("[TAG] lastTagReadTick %u ; currentTick %u, delta %u\n", lastTagReadTick, currentTick, currentTick - lastTagReadTick);
+          unsigned long currentTick = millis();
+          LOG_TRACE("[TAG] lastTagReadTick %lu ; currentTick %lu, delta %lu\n", lastTagReadTick, currentTick, currentTick - lastTagReadTick);
 
           if (currentTick - lastTagReadTick > TAG_READER_MIN_CONSECUTIVE_INTERVAL) {
             consecutiveTagRead = 0;
@@ -73,25 +95,29 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
             unsigned char buffer[10];
             unsigned char size = tagReader.readTag(buffer);
             if (size > 0) {
-              tag = "";
+              uint64_t tag = 0;
               for (unsigned char i = 0; i < size; i++) {
-                char two[3];
-                sniprintf(two, sizeof(two), "%02x", buffer[i]);
-                tag += two;
+                tag = (tag << 8) | buffer[i];
               }
               taskENTER_CRITICAL(&values->subTaskLock);
-              base10tag = strtol(tag.c_str(), &endptr, 16);
-              values->tags.push(&base10tag);
+              bool pushed = values->inboundTags.push(&tag);
               taskEXIT_CRITICAL(&values->subTaskLock);
 
-              LOG_INFO("[TAG] New Tag %s\n", tag.c_str());
+              if (pushed) {
+                LOG_INFO("[TAG] New Tag %ld\n", tag);
+              } else {
+                // critical error: cannot process fast enough / blocked product(s)
+                flushQueues(values);
+                reportStoppingError(conveyor, "Too many inbound products");
+              }
             }
           } else {
             if (!tagReader.isStuck()) {
               consecutiveTagRead++;
               if (consecutiveTagRead >= TAG_READER_MAX_CONSECUTIVE_READS) {
-                LOG_ERROR("[TAG] A product is stuck!\n");
+                // critical error: product(s) stuck
                 tagReader.setIsStuck(true);
+                reportStoppingError(conveyor, "A product is stuck");
               }
             }
           }
@@ -138,33 +164,7 @@ static void sortPackages(TaskContext *ctx) {
     switch (values->dolibarrClientStatus) {
       case DolibarrClientStatus::READY:
       case DolibarrClientStatus::ERROR:
-        switch (static_cast<SorterDirection>(values->targetWarehouse)) {
-          case SorterDirection::LEFT:
-            sorter.setDesiredAngle(SorterDirection::LEFT);
-            break;
-          case SorterDirection::MIDDLE:
-            sorter.setDesiredAngle(SorterDirection::MIDDLE);
-            break;
-          case SorterDirection::RIGHT:
-            sorter.setDesiredAngle(SorterDirection::RIGHT);
-            break;
-          default:
-            LOG_WARN("[SORT.] Invalid direction: %u\n", values->targetWarehouse);
-            sorter.setDesiredAngle(SorterDirection::RIGHT);
-            break;
-        }
-        if (sorter.getCurrentAngle() > sorter.getDesiredAngle()) {
-          do {
-            const int angle = sorter.getCurrentAngle() - 1;
-            sorter.moveWithSpecificAngle(angle);
-          } while (sorter.getCurrentAngle() > sorter.getDesiredAngle() && interruptibleTaskPauseMs(sorterAngleDelay));
-
-        } else if (sorter.getCurrentAngle() < sorter.getDesiredAngle()) {
-          do {
-            const int angle = sorter.getCurrentAngle() + 1;
-            sorter.moveWithSpecificAngle(angle);
-          } while (sorter.getCurrentAngle() < sorter.getDesiredAngle() && interruptibleTaskPauseMs(sorterAngleDelay));
-        }
+        sorter.moveToDesiredAngle(sorterAngleDelay);
         break;
       case DolibarrClientStatus::CONFIGURING:
       case DolibarrClientStatus::SENDING:
@@ -177,6 +177,7 @@ static void sortPackages(TaskContext *ctx) {
 static void makeHttpRequests(TaskContext *ctx) {
   WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
   DolibarrClient &dolibarrClient = ctx->getHardware()->dolibarrClient;
+  Conveyor &conveyor = ctx->getHardware()->conveyor;
   auto values = ctx->getSharedValues<ProductionValues>();
 
   WiFiClass::mode(WIFI_STA);  // connect to access point
@@ -194,7 +195,7 @@ static void makeHttpRequests(TaskContext *ctx) {
 
   int product = 0;
   int warehouse = 0;
-  int tag = 0;
+  uint64_t tag = 0;
   bool newTag = false;
   values->dolibarrClientStatus =
       dolibarrClient.configure(webConfigurator.getApiUrl(), webConfigurator.getApiKey(), webConfigurator.getApiWarehouseError());
@@ -205,14 +206,23 @@ static void makeHttpRequests(TaskContext *ctx) {
     case DolibarrClientStatus::READY:
       do {
         taskENTER_CRITICAL(&values->subTaskLock);
-        newTag = values->tags.pop(&tag);
+        newTag = values->inboundTags.pop(&tag);
         taskEXIT_CRITICAL(&values->subTaskLock);
 
         if (newTag) {
           values->dolibarrClientStatus = dolibarrClient.sendTag(tag, product, warehouse);
           values->dolibarrClientStatus = dolibarrClient.sendStockMovement(warehouse, product, 1);
 
-          values->targetWarehouse = warehouse;
+          auto outboundDir = static_cast<SorterDirection>(warehouse - 1);
+          taskENTER_CRITICAL(&values->subTaskLock);
+          bool pushed = values->outboundDirs.push(&outboundDir);
+          taskEXIT_CRITICAL(&values->subTaskLock);
+
+          if (!pushed) {
+            values->dolibarrClientStatus = DolibarrClientStatus::ERROR;
+            flushQueues(values);
+            reportStoppingError(conveyor, "Too many outbound products");
+          }
         }
       } while (interruptibleTaskPauseMs(TAG_READER_INTERVAL));
       break;
@@ -224,10 +234,28 @@ static void makeHttpRequests(TaskContext *ctx) {
 
 static void readEolSensor(TaskContext *ctx) {
   EolSensor &eolSensor = ctx->getHardware()->eolSensor;
+  Sorter &sorter = ctx->getHardware()->sorter;
+  WebConfigurator &webConfigurator = ctx->getHardware()->webConfigurator;
+
+  auto values = ctx->getSharedValues<ProductionValues>();
+
+  auto outboundDir = SorterDirection::RIGHT;
+  auto errorDir = static_cast<SorterDirection>(webConfigurator.getApiWarehouseError() - 1);
+
   do {
-    if (eolSensor.hasObject()) {
-      // TODO: add actual logic here
-      LOG_INFO("[EOL] Object detected\n");
+    if (!eolSensor.hasObject()) continue;
+
+    taskENTER_CRITICAL(&values->subTaskLock);
+    bool hasDir = values->outboundDirs.pop(&outboundDir);
+    taskEXIT_CRITICAL(&values->subTaskLock);
+
+    if (hasDir) {
+      LOG_INFO("[SORT] Routing package to %s\n", SORTER_DIRECTIONS[static_cast<size_t>(outboundDir)]);
+      sorter.setDesiredAngle(outboundDir);
+    } else {
+      // non-critical error: just log and route to default
+      LOG_ERROR("[EOL] Unexpected object detected, routing to default (%s)\n", SORTER_DIRECTIONS[static_cast<size_t>(errorDir)]);
+      sorter.setDesiredAngle(errorDir);
     }
   } while (interruptibleTaskPauseMs(EOL_SENSOR_INTERVAL));
 }
@@ -244,8 +272,5 @@ void startProductionMode(TaskContext *ctx) {
   spawnSubTask(sortPackages, ctx);
   spawnSubTask(readEolSensor, ctx);
 
-  M5.Lcd.clearDisplay();
-  M5.Lcd.setCursor(0, 0);
-  M5.Lcd.println("= Production Mode =");
-  M5.Lcd.println("A: Start B: Mode C: Stop");
+  displayProductionModeText();
 }
