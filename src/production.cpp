@@ -213,7 +213,7 @@ static void makeHttpRequests(TaskContext *ctx) {
           values->dolibarrClientStatus = dolibarrClient.sendTag(tag, product, warehouse);
           values->dolibarrClientStatus = dolibarrClient.sendStockMovement(warehouse, product, 1);
 
-          auto outboundDir = static_cast<SorterDirection>(warehouse - 1);
+          auto outboundDir = static_cast<SorterDirection>(warehouse);
           taskENTER_CRITICAL(&values->subTaskLock);
           bool pushed = values->outboundDirs.push(&outboundDir);
           taskEXIT_CRITICAL(&values->subTaskLock);
@@ -240,7 +240,7 @@ static void readEolSensor(TaskContext *ctx) {
   auto values = ctx->getSharedValues<ProductionValues>();
 
   auto outboundDir = SorterDirection::RIGHT;
-  auto errorDir = static_cast<SorterDirection>(webConfigurator.getApiWarehouseError() - 1);
+  auto errorDir = static_cast<SorterDirection>(webConfigurator.getApiWarehouseError());
 
   do {
     if (!eolSensor.hasObject()) continue;
