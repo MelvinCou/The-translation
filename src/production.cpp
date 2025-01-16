@@ -24,6 +24,7 @@ static void readButtons(TaskContext *ctx) {
       LOG_DEBUG("[BTN] A pressed\n");
       conveyor.start();
       tagReader.setIsStuck(false);
+      tagReader.selfTest();
     } else if (buttons.BtnC->wasPressed()) {
       LOG_DEBUG("[BTN] C pressed\n");
       conveyor.stop();
@@ -64,9 +65,9 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
 
         if (tagReader.isNewTagPresent()) {
           const int currentTick = millis();
-          LOG_TRACE("[TAG] lastTagReadTick %u ; currentTick %u\n", lastTagReadTick, currentTick);
+          LOG_TRACE("[TAG] lastTagReadTick %u ; currentTick %u, delta %u\n", lastTagReadTick, currentTick, currentTick - lastTagReadTick);
 
-          if (lastTagReadTick + TAG_READER_INTERVAL * 2 <= currentTick) {
+          if (currentTick - lastTagReadTick > TAG_READER_MIN_CONSECUTIVE_INTERVAL) {
             consecutiveTagRead = 0;
 
             unsigned char buffer[10];

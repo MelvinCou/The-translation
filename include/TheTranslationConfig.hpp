@@ -31,9 +31,10 @@
 #pragma endregion "M5 LCD screen configuration"
 
 #pragma region "tag reader configuration"
-#define TAG_READER_INTERVAL 100              //< Read interval in milliseconds
-#define TAG_READER_TEST_INTERVAL 1000 * 5    //< Test interval in milliseconds
-#define TAG_READER_MAX_CONSECUTIVE_READS 10  //< maximum number of consecutive reads before considering a product stuck
+#define TAG_READER_INTERVAL 100                                      //< Read interval in milliseconds
+#define TAG_READER_TEST_INTERVAL 1000 * 5                            //< Test interval in milliseconds
+#define TAG_READER_MIN_CONSECUTIVE_INTERVAL TAG_READER_INTERVAL * 3  //< Minimal interval between reads
+#define TAG_READER_MAX_CONSECUTIVE_READS 10  //< Maximum number of consecutive reads before considering a product stuck
 #pragma endregion "tag reader configuration"
 
 #pragma region "soft access point configuration"
