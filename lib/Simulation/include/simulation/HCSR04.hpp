@@ -4,6 +4,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 
+#include <atomic>
+
 #include "simulation/Arduino.hpp"
 
 class UltraSonicDistanceSensor {
@@ -15,8 +17,7 @@ class UltraSonicDistanceSensor {
   unsigned short m_maxDistanceCm;
   unsigned long m_maxTimeoutMillis;
 
-  SemaphoreHandle_t m_distanceNotification;
-  float m_distance;
+  std::atomic<float> m_distance;
 };
 
 #endif  // !defined(SIMULATION_HCSR04_HPP)

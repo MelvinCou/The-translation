@@ -36,7 +36,7 @@ class Client {
   void sendNfcSetCard(I2CAddress addr, char const *card, size_t len);
   void sendWifiSetModeAck();
   void sendWifiConnectResponse(wl_status_t status);
-  void sendEolSensorReadEnd(float distance);
+  void sendEolSensorSetDistance(float distance);
 
  private:
   std::shared_ptr<std::atomic<bool>> m_stopToken;
