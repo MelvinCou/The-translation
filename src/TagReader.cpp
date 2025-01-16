@@ -46,4 +46,6 @@ void TagReader::selfTest() {
 
 TagReaderStatus TagReader::getStatus() { return m_status; }
 
+bool TagReader::isStuck() { return m_isStuck; }
+
 void TagReader::setIsStuck(const bool isStuck) { m_isStuck = isStuck; }

@@ -86,10 +86,12 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
               LOG_INFO("[TAG] New Tag %s\n", tag.c_str());
             }
           } else {
-            consecutiveTagRead++;
-            if (consecutiveTagRead >= TAG_READER_MAX_CONSECUTIVE_READS) {
-              LOG_ERROR("[TAG] A product is stuck!\n");
-              tagReader.setIsStuck(true);
+            if (!tagReader.isStuck()) {
+              consecutiveTagRead++;
+              if (consecutiveTagRead >= TAG_READER_MAX_CONSECUTIVE_READS) {
+                LOG_ERROR("[TAG] A product is stuck!\n");
+                tagReader.setIsStuck(true);
+              }
             }
           }
           lastTagReadTick = currentTick;

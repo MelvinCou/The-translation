@@ -25,6 +25,7 @@ class TagReader {
 
   TagReaderStatus getStatus();
 
+  bool isStuck();
   void setIsStuck(const bool isStuck);
 
  private:
