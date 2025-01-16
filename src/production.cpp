@@ -132,6 +132,7 @@ static void testTagReader(TaskContext *ctx) {
 static void sortPackages(TaskContext *ctx) {
   Sorter &sorter = ctx->getHardware()->sorter;
   auto values = ctx->getSharedValues<ProductionValues>();
+  int sorterAngleDelay = ctx->getHardware()->webConfigurator.getSorterAngleDelay();
 
   do {
     switch (values->dolibarrClientStatus) {
@@ -156,13 +157,13 @@ static void sortPackages(TaskContext *ctx) {
           do {
             const int angle = sorter.getCurrentAngle() - 1;
             sorter.moveWithSpecificAngle(angle);
-          } while (sorter.getCurrentAngle() > sorter.getDesiredAngle() && interruptibleTaskPauseMs(CHANGE_ANGLE_DELAY));
+          } while (sorter.getCurrentAngle() > sorter.getDesiredAngle() && interruptibleTaskPauseMs(sorterAngleDelay));
 
         } else if (sorter.getCurrentAngle() < sorter.getDesiredAngle()) {
           do {
             const int angle = sorter.getCurrentAngle() + 1;
             sorter.moveWithSpecificAngle(angle);
-          } while (sorter.getCurrentAngle() < sorter.getDesiredAngle() && interruptibleTaskPauseMs(CHANGE_ANGLE_DELAY));
+          } while (sorter.getCurrentAngle() < sorter.getDesiredAngle() && interruptibleTaskPauseMs(sorterAngleDelay));
         }
         break;
       case DolibarrClientStatus::CONFIGURING:

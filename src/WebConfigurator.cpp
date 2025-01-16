@@ -13,6 +13,8 @@
 
 #define EOL_SENSOR_THRESHOLD "eol_sensor_threshold"
 
+#define SORTER_ANGLE_DELAY "sorter_angle_delay"
+
 // clang-format off
 
 const String params = "["
@@ -60,6 +62,13 @@ const String params = "["
     "'type':"+String(INPUTNUMBER)+","
     "'min':0,'max':400,"
     "'default':'2'"
+  "},"
+  "{"
+    "'name':'"+SORTER_ANGLE_DELAY+"',"
+    "'label':'Delay (in ms) between each increase/decrease of the sorter angle',"
+    "'type':"+String(INPUTNUMBER)+","
+    "'min':1,'max':100,"
+    "'default':'30'"
   "}"
   "]";
 
@@ -100,3 +109,5 @@ int WebConfigurator::getApiWarehouseError() { return m_conf.getInt(API_WAREHOUSE
 int WebConfigurator::getConveyorSpeed() { return m_conf.getInt(CONVEYOR_SPEED); }
 
 float WebConfigurator::getEolSensorThreshold() { return m_conf.getFloat(EOL_SENSOR_THRESHOLD); }
+
+int WebConfigurator::getSorterAngleDelay() { return m_conf.getInt(SORTER_ANGLE_DELAY); }
