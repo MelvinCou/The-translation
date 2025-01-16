@@ -87,7 +87,8 @@ static void readTagsAndRunConveyor(TaskContext *ctx) {
 
         if (tagReader.isNewTagPresent()) {
           unsigned long currentTick = millis();
-          LOG_TRACE("[TAG] lastTagReadTick %lu ; currentTick %lu, delta %lu\n", lastTagReadTick, currentTick, currentTick - lastTagReadTick);
+          LOG_TRACE("[TAG] lastTagReadTick %lu ; currentTick %lu, delta %lu\n", lastTagReadTick, currentTick,
+                    currentTick - lastTagReadTick);
 
           if (currentTick - lastTagReadTick > TAG_READER_MIN_CONSECUTIVE_INTERVAL) {
             consecutiveTagRead = 0;
@@ -244,6 +245,8 @@ static void readEolSensor(TaskContext *ctx) {
 
   do {
     if (!eolSensor.hasObject()) continue;
+    // FIXME: remove
+    LOG_INFO("[EOL] HAS OBJECT\n");
 
     taskENTER_CRITICAL(&values->subTaskLock);
     bool hasDir = values->outboundDirs.pop(&outboundDir);
@@ -254,7 +257,7 @@ static void readEolSensor(TaskContext *ctx) {
       sorter.setDesiredAngle(outboundDir);
     } else {
       // non-critical error: just log and route to default
-      LOG_ERROR("[EOL] Unexpected object detected, routing to default (%s)\n", SORTER_DIRECTIONS[static_cast<size_t>(errorDir)]);
+      LOG_ERROR("[SORT] Unexpected object detected, routing to default (%s)\n", SORTER_DIRECTIONS[static_cast<size_t>(errorDir)]);
       sorter.setDesiredAngle(errorDir);
     }
   } while (interruptibleTaskPauseMs(EOL_SENSOR_INTERVAL));

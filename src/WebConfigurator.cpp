@@ -2,18 +2,20 @@
 
 #include "Logger.hpp"
 
+#pragma region "Config names"
+
+// NOTE: names of parameters are limited to 20 bytes!
+
 #define AP_SSID "ap_ssid"
 #define AP_PASSWORD "ap_password"
-
 #define API_URL "api_url"
 #define API_KEY "api_key"
 #define API_WAREHOUSE "api_warehouse"
-
 #define CONVEYOR_SPEED "conveyor_speed"
-
-#define EOL_SENSOR_THRESHOLD "eol_sensor_threshold"
-
+#define EOL_SENSOR_THRESHOLD "eol_threshold"
 #define SORTER_ANGLE_DELAY "sorter_angle_delay"
+
+#pragma endregion "Config names"
 
 // clang-format off
 
@@ -59,8 +61,7 @@ const String params = "["
   "{"
     "'name':'"+EOL_SENSOR_THRESHOLD+"',"
     "'label':'Max distance (in cm) for object detection',"
-    "'type':"+String(INPUTNUMBER)+","
-    "'min':0,'max':400,"
+    "'type':"+String(INPUTTEXT)+","
     "'default':'2'"
   "},"
   "{"
