@@ -159,6 +159,7 @@ enum class S2COpcode : uint8_t {
   LCD_CLEAR,
   LCD_SET_CURSOR,
   LCD_SET_TEXT_SIZE,
+  LCD_SET_TEXT_COLOR,
   LCD_WRITE,
   CONVEYOR_SET_SPEED,
   HTTP_BEGIN,
@@ -184,9 +185,8 @@ struct __attribute__((packed)) S2CMessage {
       int16_t x;
       int16_t y;
     } lcdSetCursor;
-    struct {
-      uint8_t size;
-    } lcdSetTextSize;
+    uint8_t lcdSetTextSize;
+    uint16_t lcdSetTextColor;
     struct {
       uint8_t len;
       uint8_t buf[255];
@@ -241,6 +241,8 @@ struct __attribute__((packed)) S2CMessage {
         return sizeof(lcdSetCursor);
       case S2COpcode::LCD_SET_TEXT_SIZE:
         return sizeof(lcdSetTextSize);
+      case S2COpcode::LCD_SET_TEXT_COLOR:
+        return sizeof(lcdSetTextColor);
       case S2COpcode::LCD_WRITE:
         return std::min(static_cast<size_t>(lcdWrite.len), sizeof(lcdWrite.buf));
       case S2COpcode::CONVEYOR_SET_SPEED:
@@ -281,6 +283,8 @@ struct __attribute__((packed)) S2CMessage {
         return "LCD_SET_CURSOR";
       case S2COpcode::LCD_SET_TEXT_SIZE:
         return "LCD_SET_TEXT_SIZE";
+      case S2COpcode::LCD_SET_TEXT_COLOR:
+        return "LCD_SET_TEXT_COLOR";
       case S2COpcode::LCD_WRITE:
         return "LCD_WRITE";
       case S2COpcode::CONVEYOR_SET_SPEED:

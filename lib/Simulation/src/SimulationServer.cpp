@@ -370,7 +370,13 @@ void SimulationServer::sendLcdSetCursor(int16_t x, int16_t y) {
 
 void SimulationServer::sendLcdSetTextSize(uint8_t size) {
   S2CMessage msg{S2COpcode::LCD_SET_TEXT_SIZE, {}};
-  msg.lcdSetTextSize.size = size;
+  msg.lcdSetTextSize = size;
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendLcdSetTextColor(uint16_t color) {
+  S2CMessage msg{S2COpcode::LCD_SET_TEXT_COLOR, {}};
+  msg.lcdSetTextColor = color;
   pushToClient(std::move(msg));
 }
 
