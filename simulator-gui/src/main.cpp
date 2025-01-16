@@ -117,11 +117,6 @@ static void registerHandlers(sim::Controller &ctrl, Dimensions *d, Image *screen
                   std::string(reinterpret_cast<char const *>(msg.wifiConnect.buf), msg.wifiConnect.ssidLen),
                   std::string(reinterpret_cast<char const *>(msg.wifiConnect.buf + msg.wifiConnect.ssidLen), msg.wifiConnect.passLen));
   });
-  ctrl.onReceive(S2COpcode::EOL_SENSOR_READ_BEGIN, [](sim::Controller &c, S2CMessage const &) {
-    if (c.getHardwareState().eolSensorEnabled) {
-      c.getClient().sendEolSensorReadEnd(c.getHardwareState().eolSensorDistance);
-    }
-  });
 }
 
 static void handleEvents(sim::Controller &ctrl, sim::HardwareState &hw, Dimensions const &d) {

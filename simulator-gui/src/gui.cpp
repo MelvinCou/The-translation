@@ -85,11 +85,15 @@ static void hardwareSectionTagReader(sim::Client &client, sim::HardwareState &hw
   ImGui::PopID();
 }
 
-static void hardwareSectionEndOfLineReader(sim::HardwareState &hw) {
+static void hardwareSectionEndOfLineReader(sim::Client &client, sim::HardwareState &hw) {
   ImGui::PushID(3);
   ImGui::SeparatorText("End of Line Reader");
-  ImGui::Checkbox("Enable", &hw.eolSensorEnabled);
-  ImGui::InputScalar("Distance", ImGuiDataType_Float, &hw.eolSensorDistance, nullptr, nullptr, "%.2f", 0);
+  if (ImGui::Checkbox("Enable", &hw.eolSensorEnabled)) {
+    client.sendEolSensorSetDistance(hw.eolSensorEnabled ? hw.eolSensorDistance : -999.f);
+  }
+  if (ImGui::SliderFloat("Distance", &hw.eolSensorDistance, -1.f, 10.f, "%.2f")) {
+    client.sendEolSensorSetDistance(hw.eolSensorDistance);
+  }
   helpMarker("Nearest surface from sensor, in cm");
   ImGui::PopID();
 }
@@ -129,7 +133,7 @@ static void hardwareSectionWifi(sim::HardwareState &hw) {
 static void hardwareSection(sim::Client &client, sim::HardwareState &hw) {
   hardwareSectionM5Stack(client, hw);
   hardwareSectionTagReader(client, hw);
-  hardwareSectionEndOfLineReader(hw);
+  hardwareSectionEndOfLineReader(client, hw);
   hardwareSectionConveyor(hw);
   hardwareSectionSorter(hw);
   hardwareSectionWifi(hw);

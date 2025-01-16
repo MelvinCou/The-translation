@@ -52,7 +52,7 @@ struct HardwareState {
         wifiStatus(WL_IDLE_STATUS),
         wifiSsid("Fake WiFi"),
         wifiPass("azerty"),
-        eolSensorDistance(9999.f),
+        eolSensorDistance(10.f),
         eolSensorEnabled(true) {}
 
   void partialReset(float scale) {
