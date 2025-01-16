@@ -32,6 +32,7 @@ class SimulationServer {
   void sendLcdClear();
   void sendLcdSetCursor(int16_t x, int16_t y);
   void sendLcdSetTextSize(uint8_t size);
+  void sendLcdSetTextColor(uint16_t color);
   void sendLcdWrite(uint8_t const *buf, uint8_t len);
   void sendConveyorSetSpeed(uint32_t speed);
   void sendHttpBegin(uint32_t reqId, uint16_t port, char const *host, uint8_t hostLen);

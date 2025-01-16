@@ -14,6 +14,7 @@ struct HardwareState {
   int cursorX;
   int cursorY;
   float fontSize;
+  uint32_t textColor;
   uint32_t conveyorSpeed;
   HttpProxy httpProxy;
   bool tagReaderEnabled;
@@ -38,6 +39,7 @@ struct HardwareState {
         cursorX(0),
         cursorY(0),
         fontSize(2.f * scale),
+        textColor(0xFFFFFFFF),
         conveyorSpeed(0),
         tagReaderEnabled(true),
         tagReaderVersion(0x88),
@@ -61,6 +63,7 @@ struct HardwareState {
     cursorX = 0;
     cursorY = 0;
     fontSize = 2.f * scale;
+    textColor = 0xFFFFFFFF;
     conveyorSpeed = 0;
     sorterAngle = 0;
     wifiMode = WIFI_MODE_NULL;

@@ -9,6 +9,8 @@ void M5Display::setCursor(int16_t x, int16_t y) { SimServer.sendLcdSetCursor(x, 
 
 void M5Display::setTextSize(uint8_t size) { SimServer.sendLcdSetTextSize(size); }
 
+void M5Display::setTextColor(uint16_t color) { SimServer.sendLcdSetTextColor(color); }
+
 size_t M5Display::write(uint8_t b) {
   SimServer.sendLcdWrite(&b, 1);
   return 1;
