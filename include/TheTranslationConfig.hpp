@@ -5,7 +5,9 @@
 #define CONVEYOR_GRBL_I2C_ADDR 0x70
 #define CONVEYOR_MOTOR_SPEED "350"
 #define CONVEYOR_MOTOR_DISTANCE "999"
-#define CONVEYOR_UPDATE_INTERVAL 100  //< Update interval in milliseconds
+#define CONVEYOR_UPDATE_INTERVAL 100      //< Update interval in milliseconds
+#define CONVEYOR_MAX_PACKAGES_INBOUND 3   //< adjust based on the actual conveyor length
+#define CONVEYOR_MAX_PACKAGES_OUTBOUND 3  //< adjust based on the actual conveyor length
 #pragma endregion "conveyor configuration"
 
 #pragma region "sorter configuration"
