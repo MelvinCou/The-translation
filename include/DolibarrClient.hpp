@@ -3,7 +3,19 @@
 
 #include <HTTPClient.h>
 
-enum class DolibarrClientStatus { CONFIGURING = 0, READY, SENDING, ERROR };
+enum class DolibarrClientStatus {
+  CONFIGURING = 0,
+  READY,
+  SENDING,
+  ERROR,
+};
+
+static constexpr char const* DOLIBARR_CLIENT_STATUS_STRINGS[] = {
+    "CONFIGURING",
+    "READY",
+    "SENDING",
+    "ERROR",
+};
 
 class DolibarrClient {
  public:
