@@ -45,8 +45,20 @@ void printConfiguration(WebConfigurator& conf) {
   M5.Lcd.setTextSize(SCREEN_FONT_SIZE);
 }
 
-void printProductionStatus() {
-  // TODO
+void printProductionStatus(DolibarrClientStatus dolibarr, ConveyorStatus conveyor, TagReaderStatus tagReader, SorterDirection sorter) {
+  M5.Lcd.println();
+
+  M5.Lcd.print("Dolibarr client status : ");
+  M5.Lcd.println(DOLIBARR_CLIENT_STATUS_STRINGS[static_cast<int>(dolibarr)]);
+
+  M5.Lcd.print("Conveyor status : ");
+  M5.Lcd.println(CONVEYOR_STATUS_STRINGS[static_cast<int>(conveyor)]);
+
+  M5.Lcd.print("TagReader status : ");
+  M5.Lcd.println(TAGREADER_STATUS_STRINGS[static_cast<int>(tagReader)]);
+
+  M5.Lcd.print("Sorter direction : ");
+  M5.Lcd.println(SORTER_DIRECTIONS[static_cast<int>(sorter)]);
 }
 
 void printLogScreen() {
