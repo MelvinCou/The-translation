@@ -22,6 +22,19 @@ int Sorter::getCurrentAngle() const { return m_currentAngle; }
 
 int Sorter::getDesiredAngle() const { return m_desiredAngle; }
 
+SorterDirection Sorter::getDesiredDirection() const {
+  switch (m_desiredAngle) {
+    case SORTER_SERVO_LEFT_ANGLE:
+      return SorterDirection::LEFT;
+    case SORTER_SERVO_MIDDLE_ANGLE:
+      return SorterDirection::MIDDLE;
+    case SORTER_SERVO_RIGHT_ANGLE:
+      return SorterDirection::RIGHT;
+    default:
+      return SorterDirection::RIGHT;
+  }
+}
+
 void Sorter::setDesiredAngle(SorterDirection direction) {
   switch (direction) {
     case SorterDirection::LEFT:
