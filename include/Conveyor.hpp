@@ -14,6 +14,7 @@ static constexpr char const *CONVEYOR_STATUS_STRINGS[] = {
     "UNDEFINED",
     "STOPPED",
     "RUNNING",
+    "CANCELLED",
 };
 
 /// @brief Conveyor interface
