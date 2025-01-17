@@ -10,24 +10,85 @@
 #include "Hardware.hpp"
 #include "Logger.hpp"
 #include "TheTranslationConfig.hpp"
+#include "lcdScreen.hpp"
 #include "production/ProductionValues.hpp"
 #include "taskUtil.hpp"
+
+static void printHeader(bool startMotor) {
+  clearScreen();
+  M5.Lcd.println("= Production Mode =");
+  M5.Lcd.print("A: ");
+  M5.Lcd.print(startMotor ? "Start" : "Stop");
+  M5.Lcd.println(" B: Mode C: Show state");
+}
 
 static void readButtons(TaskContext *ctx) {
   Buttons &buttons = ctx->getHardware()->buttons;
   Conveyor &conveyor = ctx->getHardware()->conveyor;
+  Sorter &sorter = ctx->getHardware()->sorter;
   TagReader &tagReader = ctx->getHardware()->tagReader;
+  auto values = ctx->getSharedValues<ProductionValues>();
+
+  // values used for the lcd screen
+  bool somethingChanged = false;
+  bool startMotor = conveyor.getCurrentStatus() != ConveyorStatus::RUNNING;
+  bool showState = false;
+  // current values
+  DolibarrClientStatus currentDolStatus;
+  ConveyorStatus currentConveyorStatus;
+  TagReaderStatus currentTagStatus;
+  SorterDirection currentDirection;
+  // old values
+  bool oldStartMotor = startMotor;
+  bool oldShowState = showState;
+  DolibarrClientStatus oldDolStatus = values->dolibarrClientStatus;
+  ConveyorStatus oldConveyorStatus = conveyor.getCurrentStatus();
+  TagReaderStatus oldTagStatus = tagReader.getStatus();
+  SorterDirection oldDirection = sorter.getDesiredDirection();
+
+  printHeader(startMotor);
 
   do {
     buttons.update();
     if (buttons.BtnA->wasPressed()) {
       LOG_DEBUG("[BTN] A pressed\n");
-      conveyor.start();
-      tagReader.setIsStuck(false);
-      tagReader.selfTest();
+      if (startMotor) {
+        conveyor.start();
+        tagReader.setIsStuck(false);
+        tagReader.selfTest();
+      } else {
+        conveyor.stop();
+      }
+      startMotor = !startMotor;
     } else if (buttons.BtnC->wasPressed()) {
       LOG_DEBUG("[BTN] C pressed\n");
-      conveyor.stop();
+      showState = !showState;
+    }
+
+    currentDolStatus = values->dolibarrClientStatus;
+    currentConveyorStatus = conveyor.getCurrentStatus();
+    currentTagStatus = tagReader.getStatus();
+    currentDirection = sorter.getDesiredDirection();
+
+    if (showState) {
+      somethingChanged = oldStartMotor != startMotor || oldShowState != showState || oldDolStatus != currentDolStatus ||
+                         oldConveyorStatus != currentConveyorStatus || oldTagStatus != currentTagStatus || oldDirection != currentDirection;
+    } else {
+      somethingChanged = oldStartMotor != startMotor || oldShowState != showState;
+    }
+    if (somethingChanged) {
+      printHeader(startMotor);
+      if (showState) {
+        printProductionStatus(currentDolStatus, currentConveyorStatus, currentTagStatus, currentDirection);
+      }
+
+      oldStartMotor = startMotor;
+      oldShowState = showState;
+
+      oldDolStatus = currentDolStatus;
+      oldConveyorStatus = currentConveyorStatus;
+      oldTagStatus = currentTagStatus;
+      oldDirection = currentDirection;
     }
 
     if (buttons.BtnB->wasPressed()) {
@@ -231,9 +292,4 @@ void startProductionMode(TaskContext *ctx) {
   spawnSubTask(testTagReader, ctx);
   spawnSubTask(makeHttpRequests, ctx);
   spawnSubTask(sortPackages, ctx);
-
-  M5.Lcd.clearDisplay();
-  M5.Lcd.setCursor(0, 0);
-  M5.Lcd.println("= Production Mode =");
-  M5.Lcd.println("A: Start B: Mode C: Stop");
 }
