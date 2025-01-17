@@ -3,7 +3,17 @@
 
 #include <MFRC522_I2C.h>
 
-enum class TagReaderStatus { CONFIGURING, READY, ERROR };
+enum class TagReaderStatus {
+  CONFIGURING,
+  READY,
+  ERROR,
+};
+
+static constexpr char const *TAGREADER_STATUS_STRINGS[] = {
+    "CONFIGURING",
+    "READY",
+    "ERROR",
+};
 
 class TagReader {
  public:
