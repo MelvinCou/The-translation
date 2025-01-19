@@ -9,7 +9,6 @@ Tools needed:
 - PlateformIO
 - ClangFormat
 
-
 ```sh
 # Check project (by default: cppcheck)
 pio check --skip-packages
@@ -19,5 +18,16 @@ pio run
 pio run --list-targets
 
 # Format code
-clang-format -i src/*.cpp include/*.hpp
+./scripts/format.sh
 ```
+
+## Run the simulator
+
+Follow instructions in [Simulateur](./docs/Simulateur.pdf)
+
+## Documentation
+
+Two formats :
+
+- pdf: available in [docs](./docs/) folder
+- html: hosted on [Github](https://github.com/MelvinCou/The-translation/wiki)
