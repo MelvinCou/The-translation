@@ -16,6 +16,7 @@ enum class C2SOpcode : uint8_t {
   NFC_SET_CARD,
   WIFI_SET_MODE_ACK,
   WIFI_CONNECT_RESPONSE,
+  EOL_SENSOR_SET_DISTANCE,
   MAX_OPCODE,
 };
 
@@ -69,6 +70,7 @@ struct __attribute__((packed)) C2SMessage {
       uint8_t uid[10];
     } nfcSetCard;
     int wifiConnectResponse;
+    float eolSensorSetDistance;
   };
 
   /// @return The total length of the message in bytes (header + payload)
@@ -108,6 +110,8 @@ struct __attribute__((packed)) C2SMessage {
         return std::min(static_cast<size_t>(nfcSetCard.uidLen), sizeof(nfcSetCard.uid));
       case C2SOpcode::WIFI_CONNECT_RESPONSE:
         return sizeof(wifiConnectResponse);
+      case C2SOpcode::EOL_SENSOR_SET_DISTANCE:
+        return sizeof(eolSensorSetDistance);
       default:
         return 0;
     }
@@ -140,6 +144,8 @@ struct __attribute__((packed)) C2SMessage {
         return "WIFI_SET_MODE_ACK";
       case C2SOpcode::WIFI_CONNECT_RESPONSE:
         return "WIFI_CONNECT_RESPONSE";
+      case C2SOpcode::EOL_SENSOR_SET_DISTANCE:
+        return "EOL_SENSOR_SET_DISTANCE";
       case C2SOpcode::MAX_OPCODE:
         return "UNKNOWN";
     }
@@ -153,6 +159,7 @@ enum class S2COpcode : uint8_t {
   LCD_CLEAR,
   LCD_SET_CURSOR,
   LCD_SET_TEXT_SIZE,
+  LCD_SET_TEXT_COLOR,
   LCD_WRITE,
   CONVEYOR_SET_SPEED,
   HTTP_BEGIN,
@@ -177,9 +184,8 @@ struct __attribute__((packed)) S2CMessage {
       int16_t x;
       int16_t y;
     } lcdSetCursor;
-    struct {
-      uint8_t size;
-    } lcdSetTextSize;
+    uint8_t lcdSetTextSize;
+    uint16_t lcdSetTextColor;
     struct {
       uint8_t len;
       uint8_t buf[255];
@@ -234,6 +240,8 @@ struct __attribute__((packed)) S2CMessage {
         return sizeof(lcdSetCursor);
       case S2COpcode::LCD_SET_TEXT_SIZE:
         return sizeof(lcdSetTextSize);
+      case S2COpcode::LCD_SET_TEXT_COLOR:
+        return sizeof(lcdSetTextColor);
       case S2COpcode::LCD_WRITE:
         return std::min(static_cast<size_t>(lcdWrite.len), sizeof(lcdWrite.buf));
       case S2COpcode::CONVEYOR_SET_SPEED:
@@ -274,6 +282,8 @@ struct __attribute__((packed)) S2CMessage {
         return "LCD_SET_CURSOR";
       case S2COpcode::LCD_SET_TEXT_SIZE:
         return "LCD_SET_TEXT_SIZE";
+      case S2COpcode::LCD_SET_TEXT_COLOR:
+        return "LCD_SET_TEXT_COLOR";
       case S2COpcode::LCD_WRITE:
         return "LCD_WRITE";
       case S2COpcode::CONVEYOR_SET_SPEED:

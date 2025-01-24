@@ -1,6 +1,8 @@
 #ifndef HARDWARE_HPP
 #define HARDWARE_HPP
 
+#include <EolSensor.hpp>
+
 #include "Buttons.hpp"
 #include "Conveyor.hpp"
 #include "DolibarrClient.hpp"
@@ -21,6 +23,7 @@ class Hardware {
   Conveyor conveyor;
   Sorter sorter;
   TagReader tagReader;
+  EolSensor eolSensor;
   // Not technically hardware, but close enough
   WebConfigurator webConfigurator;
   DolibarrClient dolibarrClient;

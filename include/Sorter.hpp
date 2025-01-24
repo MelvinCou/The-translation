@@ -1,6 +1,8 @@
 #ifndef SORTER_HPP
 #define SORTER_HPP
 
+#include <cstdint>
+
 enum class SorterDirection {
   LEFT = 1,
   MIDDLE,
@@ -26,6 +28,7 @@ class Sorter {
   int getDesiredAngle() const;
   SorterDirection getDesiredDirection() const;
   void setDesiredAngle(SorterDirection direction);
+  void moveToDesiredAngle(uint32_t delayMs);
 
  private:
   int m_desiredAngle;

@@ -29,6 +29,10 @@ class WebConfigurator {
 
   int getConveyorSpeed();
 
+  float getEolSensorThreshold();
+
+  int getSorterAngleDelay();
+
  private:
   WebServer m_server;
   WebConfig m_conf;

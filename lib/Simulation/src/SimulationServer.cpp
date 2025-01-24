@@ -9,6 +9,7 @@
 
 #include <cerrno>
 #include <cstdlib>
+#include <utility>
 #include <vector>
 
 #define TAG "SimServer"
@@ -23,7 +24,8 @@ SimulationServer::SimulationServer()
       m_hasQueuedConfigRead(false),
       m_wifiOnSetModeAckHandler([] {}),
       m_wifiOnConnectResponseHandler([](int) {}),
-      m_httpOnResponseHandler([](uint32_t, std::vector<char>) {}) {}
+      m_httpOnResponseHandler([](uint32_t, std::vector<char>) {}),
+      m_eolSensorOnSetDistanceHandler([](float) {}) {}
 
 void SimulationServer::registerButton(int id, std::shared_ptr<std::atomic<bool>> const& isPressed) {
   switch (id) {
@@ -43,15 +45,21 @@ void SimulationServer::registerButton(int id, std::shared_ptr<std::atomic<bool>>
 
 void SimulationServer::registerNfc(I2CAddress addr, std::function<void(C2SMessage const&)> handler) {
   std::unique_lock<std::mutex> lock(m_nfcLock);
-  m_nfcHandlers[static_cast<uint16_t>(addr)] = handler;
+  m_nfcHandlers[static_cast<uint16_t>(addr)] = std::move(handler);
 }
 
-void SimulationServer::registerWifiOnSetModeAck(std::function<void()> handler) { m_wifiOnSetModeAckHandler = handler; }
+void SimulationServer::registerWifiOnSetModeAck(std::function<void()> handler) { m_wifiOnSetModeAckHandler = std::move(handler); }
 
-void SimulationServer::registerWifiOnConnectResponse(std::function<void(int)> handler) { m_wifiOnConnectResponseHandler = handler; }
+void SimulationServer::registerWifiOnConnectResponse(std::function<void(int)> handler) {
+  m_wifiOnConnectResponseHandler = std::move(handler);
+}
 
 void SimulationServer::registerHttpOnResponse(std::function<void(uint32_t, std::vector<char>)> handler) {
-  m_httpOnResponseHandler = handler;
+  m_httpOnResponseHandler = std::move(handler);
+}
+
+void SimulationServer::registerEolSensorOnSetDistance(std::function<void(float)> handler) {
+  m_eolSensorOnSetDistanceHandler = std::move(handler);
 }
 
 void SimulationServer::pushToClient(S2CMessage&& msg) {
@@ -344,6 +352,8 @@ int SimulationServer::doProcess() {
     m_wifiOnSetModeAckHandler();
   } else if (msg.opcode == C2SOpcode::WIFI_CONNECT_RESPONSE) {
     m_wifiOnConnectResponseHandler(msg.wifiConnectResponse);
+  } else if (msg.opcode == C2SOpcode::EOL_SENSOR_SET_DISTANCE) {
+    m_eolSensorOnSetDistanceHandler(msg.eolSensorSetDistance);
   }
   return 0;
 }
@@ -362,7 +372,13 @@ void SimulationServer::sendLcdSetCursor(int16_t x, int16_t y) {
 
 void SimulationServer::sendLcdSetTextSize(uint8_t size) {
   S2CMessage msg{S2COpcode::LCD_SET_TEXT_SIZE, {}};
-  msg.lcdSetTextSize.size = size;
+  msg.lcdSetTextSize = size;
+  pushToClient(std::move(msg));
+}
+
+void SimulationServer::sendLcdSetTextColor(uint16_t color) {
+  S2CMessage msg{S2COpcode::LCD_SET_TEXT_COLOR, {}};
+  msg.lcdSetTextColor = color;
   pushToClient(std::move(msg));
 }
 

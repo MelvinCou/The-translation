@@ -14,7 +14,6 @@ void startConfigurationMode(TaskContext *ctx);
     // Wait for a call to requestOperationModeChange()
     ctx->waitForModeOperationModeChange();
     OperationMode newMode = ctx->getRequestedOperationMode();
-    OperationMode oldMode = ctx->getCurrentOperationMode();
 
     if (newMode == OperationMode::UNDEFINED) {
       LOG_ERROR("[MODE] Received invalid mode change request\n");

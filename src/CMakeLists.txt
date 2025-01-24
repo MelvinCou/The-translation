@@ -3,6 +3,7 @@ set(SOURCES
         configuration.cpp
         Conveyor.cpp
         DolibarrClient.cpp
+        EolSensor.cpp
         Hardware.cpp
         lcdScreen.cpp
         main.cpp

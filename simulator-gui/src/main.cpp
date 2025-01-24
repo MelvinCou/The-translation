@@ -37,7 +37,13 @@ static void writeToLcd(Dimensions const &d, sim::HardwareState &hw, Image *scree
         hw.cursorX = 0;
         hw.cursorY += hw.fontSize * 10;
       } else {
-        ImageDrawText(screen, txtBuf, hw.cursorX, hw.cursorY, hw.fontSize * 10, WHITE);
+        Color color{
+            static_cast<unsigned char>((hw.textColor >> 24) & 0xFF),
+            static_cast<unsigned char>((hw.textColor >> 16) & 0xFF),
+            static_cast<unsigned char>((hw.textColor >> 8) & 0xFF),
+            static_cast<unsigned char>(hw.textColor & 0xFF),
+        };
+        ImageDrawText(screen, txtBuf, hw.cursorX, hw.cursorY, hw.fontSize * 10, color);
         hw.cursorX += textWidth;
       }
     }
@@ -72,7 +78,13 @@ static void registerHandlers(sim::Controller &ctrl, Dimensions *d, Image *screen
     c.getHardwareState().cursorY = msg.lcdSetCursor.y;
   });
   ctrl.onReceive(S2COpcode::LCD_SET_TEXT_SIZE,
-                 [d](sim::Controller &c, S2CMessage const &msg) { c.getHardwareState().fontSize = msg.lcdSetTextSize.size * d->scale; });
+                 [d](sim::Controller &c, S2CMessage const &msg) { c.getHardwareState().fontSize = msg.lcdSetTextSize * d->scale; });
+  ctrl.onReceive(S2COpcode::LCD_SET_TEXT_COLOR, [d](sim::Controller &c, S2CMessage const &msg) {
+    uint32_t r = ((msg.lcdSetTextColor >> 11) & 0x1F) * 8;
+    uint32_t g = ((msg.lcdSetTextColor >> 5) & 0x3F) * 8;
+    uint32_t b = (msg.lcdSetTextColor & 0x1F) * 8;
+    c.getHardwareState().textColor = (r << 24) | (g << 16) | (b << 8) | 0xFF;
+  });
   ctrl.onReceive(S2COpcode::LCD_WRITE, [d, screen](sim::Controller &c, S2CMessage const &msg) {
     writeToLcd(*d, c.getHardwareState(), screen, reinterpret_cast<char const *>(msg.lcdWrite.buf), msg.lcdWrite.len);
   });

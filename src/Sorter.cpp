@@ -3,6 +3,7 @@
 #include <GoPlus2.h>
 
 #include "TheTranslationConfig.hpp"
+#include "taskUtil.hpp"
 
 GoPlus2 goPlus;
 
@@ -46,5 +47,20 @@ void Sorter::setDesiredAngle(SorterDirection direction) {
     case SorterDirection::RIGHT:
       m_desiredAngle = SORTER_SERVO_RIGHT_ANGLE;
       break;
+  }
+}
+
+void Sorter::moveToDesiredAngle(uint32_t delayMs) {
+  if (getCurrentAngle() > getDesiredAngle()) {
+    do {
+      const int angle = getCurrentAngle() - 1;
+      moveWithSpecificAngle(angle);
+    } while (getCurrentAngle() > getDesiredAngle() && interruptibleTaskPauseMs(delayMs));
+
+  } else if (getCurrentAngle() < getDesiredAngle()) {
+    do {
+      const int angle = getCurrentAngle() + 1;
+      moveWithSpecificAngle(angle);
+    } while (getCurrentAngle() < getDesiredAngle() && interruptibleTaskPauseMs(delayMs));
   }
 }

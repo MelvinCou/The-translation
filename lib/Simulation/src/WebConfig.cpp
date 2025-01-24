@@ -9,12 +9,11 @@
 WebConfig::WebConfig() {}
 
 void WebConfig::setDescription(String parameter) {
-  // ESP_LOGW("WebConfig", "setDescription: %s", parameter.c_str());
   JsonDocument schema;
   DeserializationError err = deserializeJson(schema, parameter);
 
   m_strings.clear();
-  m_ints.clear();
+  m_numbers.clear();
   SimServer.sendConfigSchemaReset();
   if (err) {
     ESP_LOGE("WebConfig", "Failed to deserialize config schema: %s", err.c_str());
@@ -30,7 +29,7 @@ void WebConfig::setDescription(String parameter) {
     if (type == 0 || type == 1) {
       m_strings[name] = def;
     } else if (type == 2) {
-      m_ints[name] = atoi(def);
+      m_numbers[name] = atof(def);
     }
     SimServer.sendConfigSchemaDefine(type, name, label, def);
   }
@@ -64,8 +63,16 @@ const char* WebConfig::getValue(const char* name) {
 }
 
 int WebConfig::getInt(const char* name) {
-  const auto res = m_ints.find(name);
-  if (res == m_ints.end()) {
+  const auto res = m_numbers.find(name);
+  if (res == m_numbers.end()) {
+    return 0;
+  }
+  return res->second;
+}
+
+float WebConfig::getFloat(const char* name) {
+  const auto res = m_numbers.find(name);
+  if (res == m_numbers.end()) {
     return 0;
   }
   return res->second;
@@ -91,10 +98,10 @@ bool WebConfig::popValueChange(bool cancelOnFullReadEnd) {
       strRes->second = value;
       ESP_LOGI("WebConfig", "Updated string value: %s = %s", name.c_str(), value.c_str());
     } else {
-      auto intRes = m_ints.find(name);
-      if (intRes != m_ints.end()) {
-        intRes->second = atoi(value.c_str());
-        ESP_LOGI("WebConfig", "Updated int value: %s = %d", name.c_str(), intRes->second);
+      auto intRes = m_numbers.find(name);
+      if (intRes != m_numbers.end()) {
+        intRes->second = atof(value.c_str());
+        ESP_LOGI("WebConfig", "Updated number value: %s = %f", name.c_str(), intRes->second);
       } else {
         ESP_LOGW("WebConfig", "Unknown config field: %s", name.c_str());
       }
