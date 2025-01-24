@@ -3,7 +3,7 @@
 
 #pragma region "conveyor configuration"
 #define CONVEYOR_GRBL_I2C_ADDR 0x70
-#define CONVEYOR_MOTOR_SPEED "350"
+#define CONVEYOR_MOTOR_SPEED "300"
 #define CONVEYOR_MOTOR_DISTANCE "999"
 #define CONVEYOR_UPDATE_INTERVAL 100      //< Update interval in milliseconds
 #define CONVEYOR_MAX_PACKAGES_INBOUND 3   //< adjust based on the actual conveyor length
@@ -58,7 +58,7 @@
 #pragma endregion "maintenance mode"
 
 #pragma region "end of line sensor configuration"
-#define EOL_SENSOR_INTERVAL 100          //< Read interval in milliseconds
+#define EOL_SENSOR_INTERVAL 250          //< Read interval in milliseconds
 #define EOL_SENSOR_TRIGGER_PIN 12        //< Trigger GPIO pin of the HCSR04 sensor
 #define EOL_SENSOR_ECHO_PIN 13           //< Echo GPIO pin of the HCSR04 sensor
 #define EOL_SENSOR_READ_TIMEOUT 1000000  //< Read timeout in microseconds
