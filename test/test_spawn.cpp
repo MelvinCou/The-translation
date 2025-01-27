@@ -1,6 +1,7 @@
 #include <doctest.h>
 
 #include "SimProcess.hpp"
+#include "TheTranslationConfig.hpp"
 #include "sim/Client.hpp"
 #include "sim/ClientThread.hpp"
 #include "sim/Controller.hpp"
@@ -34,5 +35,10 @@ TEST_CASE("Spawn TheTranslation") {
     CHECK_EQ(message.conveyorSetSpeed, 0);
   }
 
-  CHECK_EQ(1, 1);
+  SUBCASE("Production mode - sorter should rest at SORTER_SERVO_RIGHT_ANGLE") {
+    CHECK_EQ(ctrl->getHardwareState().sorterAngle, SORTER_SERVO_RIGHT_ANGLE);
+    ctrl->expectReceive(S2COpcode::CONVEYOR_SET_SPEED, [ctrl] { ctrl->pressButton(0); }, &message);
+    // sorter should not move when conveyor is started
+    CHECK_EQ(ctrl->getHardwareState().sorterAngle, SORTER_SERVO_RIGHT_ANGLE);
+  }
 }
