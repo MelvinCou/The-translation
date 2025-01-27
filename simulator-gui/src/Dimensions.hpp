@@ -10,7 +10,7 @@
 #define M5_BUTTON \
   CLITERAL(Color) { 194, 191, 203, 255 }
 
-constexpr int INITIAL_SCREEN_WIDTH = 900;
+constexpr int INITIAL_SCREEN_WIDTH = 1600;
 constexpr int INITIAL_SCREEN_HEIGHT = 900;
 constexpr float M5_BASE_SCREEN_WIDTH = 320;
 constexpr float M5_BASE_SCREEN_HEIGHT = 240;
