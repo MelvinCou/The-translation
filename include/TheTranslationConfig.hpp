@@ -33,9 +33,9 @@
 #pragma endregion "M5 LCD screen configuration"
 
 #pragma region "tag reader configuration"
-#define TAG_READER_INTERVAL 100                                      //< Read interval in milliseconds
-#define TAG_READER_TEST_INTERVAL 1000 * 5                            //< Test interval in milliseconds
-#define TAG_READER_MIN_CONSECUTIVE_INTERVAL TAG_READER_INTERVAL * 3  //< Minimal interval between reads
+#define TAG_READER_INTERVAL 100                                        //< Read interval in milliseconds
+#define TAG_READER_TEST_INTERVAL (1000 * 5)                            //< Test interval in milliseconds
+#define TAG_READER_MIN_CONSECUTIVE_INTERVAL (TAG_READER_INTERVAL * 3)  //< Minimal interval between reads
 #define TAG_READER_MAX_CONSECUTIVE_READS 10  //< Maximum number of consecutive reads before considering a product stuck
 #pragma endregion "tag reader configuration"
 
@@ -58,10 +58,11 @@
 #pragma endregion "maintenance mode"
 
 #pragma region "end of line sensor configuration"
-#define EOL_SENSOR_INTERVAL 250          //< Read interval in milliseconds
-#define EOL_SENSOR_TRIGGER_PIN 12        //< Trigger GPIO pin of the HCSR04 sensor
-#define EOL_SENSOR_ECHO_PIN 13           //< Echo GPIO pin of the HCSR04 sensor
-#define EOL_SENSOR_READ_TIMEOUT 1000000  //< Read timeout in microseconds
+#define EOL_SENSOR_INTERVAL 200                                        //< Read interval in milliseconds
+#define EOL_SENSOR_TRIGGER_PIN 12                                      //< Trigger GPIO pin of the HCSR04 sensor
+#define EOL_SENSOR_ECHO_PIN 13                                         //< Echo GPIO pin of the HCSR04 sensor
+#define EOL_SENSOR_READ_TIMEOUT 1000000                                //< Read timeout in microseconds
+#define EOL_SENSOR_MIN_CONSECUTIVE_INTERVAL (EOL_SENSOR_INTERVAL * 3)  //< Minimal interval between reads
 #pragma endregion "tag reader configuration"
 
 #endif  // !defined(THE_TRANSLATION_CONFIG_HPP)

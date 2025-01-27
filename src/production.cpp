@@ -242,23 +242,29 @@ static void readEolSensor(TaskContext *ctx) {
 
   auto outboundDir = SorterDirection::RIGHT;
   auto errorDir = static_cast<SorterDirection>(webConfigurator.getApiWarehouseError());
+  unsigned long lastObjectTick = 0UL;
 
   do {
     if (!eolSensor.hasObject()) continue;
-    // FIXME: remove
-    LOG_INFO("[EOL] HAS OBJECT\n");
 
-    taskENTER_CRITICAL(&values->subTaskLock);
-    bool hasDir = values->outboundDirs.pop(&outboundDir);
-    taskEXIT_CRITICAL(&values->subTaskLock);
+    unsigned long currentTick = millis();
+    LOG_TRACE("[EOL] lastObjectTick %lu ; currentTick %lu, delta %lu\n", lastObjectTick, currentTick, currentTick - lastObjectTick);
 
-    if (hasDir) {
-      LOG_INFO("[SORT] Routing package to %s\n", SORTER_DIRECTIONS[static_cast<size_t>(outboundDir)]);
-      sorter.setDesiredAngle(outboundDir);
-    } else {
-      // non-critical error: just log and route to default
-      LOG_ERROR("[SORT] Unexpected object detected, routing to default (%s)\n", SORTER_DIRECTIONS[static_cast<size_t>(errorDir)]);
-      sorter.setDesiredAngle(errorDir);
+    if (currentTick - lastObjectTick > EOL_SENSOR_MIN_CONSECUTIVE_INTERVAL) {
+      lastObjectTick = currentTick;
+
+      taskENTER_CRITICAL(&values->subTaskLock);
+      bool hasDir = values->outboundDirs.pop(&outboundDir);
+      taskEXIT_CRITICAL(&values->subTaskLock);
+
+      if (hasDir) {
+        LOG_INFO("[SORT] Routing package to %s\n", SORTER_DIRECTIONS[static_cast<size_t>(outboundDir)]);
+        sorter.setDesiredAngle(outboundDir);
+      } else {
+        // non-critical error: just log and route to default
+        LOG_ERROR("[SORT] Unexpected object detected, routing to default (%s)\n", SORTER_DIRECTIONS[static_cast<size_t>(errorDir)]);
+        sorter.setDesiredAngle(errorDir);
+      }
     }
   } while (interruptibleTaskPauseMs(EOL_SENSOR_INTERVAL));
 }
