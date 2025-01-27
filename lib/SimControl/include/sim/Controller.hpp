@@ -40,6 +40,10 @@ class Controller {
   /// @return true if the client is connected, false if the timeout was reached
   bool awaitConnection(std::chrono::milliseconds timeout = std::chrono::seconds(5));
 
+  /// @brief Blocks the current thread until the simulation is fully initialized and ready to receive messages.
+  /// @return true when ready, false if the timeout was reached
+  bool awaitSimulationReady(std::chrono::milliseconds timeout = std::chrono::seconds(2));
+
   /// @brief Registers a permanent message handler for a specific opcode
   void onReceive(S2COpcode opcode, ReceiveHandler &&handler);
   /// @brief Registers a temporary message handler for a specific opcode

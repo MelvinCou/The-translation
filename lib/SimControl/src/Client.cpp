@@ -147,7 +147,7 @@ int sim::Client::doWrite() {
     auto const* toWrite = reinterpret_cast<uint8_t const*>(&msg);
     size_t len = msg.length();
 
-    printf("[SEND] %s\n", msg.name());
+    printf("[SEND/C] %s\n", msg.name());
 
     while (len > 0) {
       ssize_t numBytes = send(m_sockFd, toWrite, len, MSG_NOSIGNAL);
@@ -231,7 +231,7 @@ int sim::Client::doProcess() {
       break;
   }
 
-  printf("[RECV] %s\n", msg.name());
+  printf("[RECV/C] %s\n", msg.name());
 
   std::unique_lock<std::mutex> lock(m_s2cQueueLock);
   m_s2cQueue.push(std::move(msg));

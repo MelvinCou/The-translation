@@ -1,8 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT  // REQUIRED: Enable custom main()
 #include <doctest.h>
 
-TEST_CASE("My first test") { CHECK_EQ(1, 1); }
-
 #include "SimProcess.hpp"
 
 int main(int argc, char **argv) {
