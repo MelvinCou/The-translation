@@ -20,16 +20,17 @@ TEST_CASE("Spawn TheTranslation") {
 
   S2CMessage message;
   REQUIRE_MESSAGE(ctrl->awaitConnection(), "Failed to connect to the server, timed out");
+  ctrl->awaitSimulationReady();
 
   SUBCASE("Production mode - start and stop conveyor") {
     // Conveyor should start when 'A' is pressed
     bool started = ctrl->expectReceive(S2COpcode::CONVEYOR_SET_SPEED, [ctrl] { ctrl->pressButton(0); }, &message);
-    REQUIRE_UNARY(started);
+    CHECK_UNARY(started);
     CHECK_GT(message.conveyorSetSpeed, 0);
 
     // Conveyor should stop when 'C' is pressed
     bool stopped = ctrl->expectReceive(S2COpcode::CONVEYOR_SET_SPEED, [ctrl] { ctrl->pressButton(2); }, &message);
-    REQUIRE_UNARY(stopped);
+    CHECK_UNARY(stopped);
     CHECK_EQ(message.conveyorSetSpeed, 0);
   }
 

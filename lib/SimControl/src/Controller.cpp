@@ -44,6 +44,10 @@ bool sim::Controller::awaitConnection(std::chrono::milliseconds const timeout) {
   return m_notifyVar.wait_for(lock, timeout, [this] { return m_client->getState() != Client::State::CONNECTING; });
 }
 
+bool sim::Controller::awaitSimulationReady(std::chrono::milliseconds timeout) {
+  return expectReceive(S2COpcode::LCD_CLEAR, [] {}, nullptr, timeout);
+}
+
 void sim::Controller::onReceive(S2COpcode opcode, ReceiveHandler &&handler) { m_handlers[opcode] = handler; }
 
 void sim::Controller::onReceiveOnce(S2COpcode opcode, ReceiveHandler &&handler) { m_handlersOnce[opcode] = handler; }

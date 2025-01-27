@@ -248,7 +248,7 @@ void SimulationServer::tryPushQueuedMessage() {
   std::unique_lock<std::mutex> lock(m_queueLock);
   while (!m_queue.empty()) {
     S2CMessage const& msg = m_queue.front();
-    ESP_LOGD(TAG, "[SEND] %s", msg.name());
+    ESP_LOGD(TAG, "[SEND/S] %s", msg.name());
     if (writeMessage(m_clientFd, &msg) >= 0) {
       m_queue.pop();
     }
@@ -301,7 +301,7 @@ int SimulationServer::doProcess() {
       break;
   }
 
-  ESP_LOGD(TAG, "[RECV] %s", msg.name());
+  ESP_LOGD(TAG, "[RECV/S] %s", msg.name());
 
   if (msg.opcode == C2SOpcode::SET_BUTTON) {
     switch (msg.setButton.id) {
