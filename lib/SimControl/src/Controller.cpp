@@ -63,6 +63,9 @@ void sim::Controller::registerDefaultReceiveHandlers() {
   onReceive(S2COpcode::CONFIG_FULL_READ_BEGIN, [](Controller &c, S2CMessage const &) { c.getConfig().doFullConfigRead(c.getClient()); });
   onReceive(S2COpcode::NFC_GET_VERSION,
             [](sim::Controller &c, S2CMessage const &) { c.getClient().sendNfcSetVersion(I2CAddress{1, 0x28}, 0x88); });
+  onReceive(S2COpcode::SORTER_SET_ANGLE, [](sim::Controller &c, S2CMessage const &msg) {
+    if (c.getHardwareState().sorterEnabled) c.getHardwareState().sorterAngle = msg.sorterSetAngle;
+  });
 }
 
 bool sim::Controller::expectReceive(S2COpcode opcode, std::function<void()> const &scope, S2CMessage *msg,

@@ -103,9 +103,6 @@ static void registerHandlers(sim::Controller &ctrl, Dimensions *d, Image *screen
   ctrl.onReceive(S2COpcode::NFC_GET_VERSION, [](sim::Controller &c, S2CMessage const &) {
     if (c.getHardwareState().tagReaderEnabled) c.getClient().sendNfcSetVersion(I2CAddress{1, 0x28}, c.getHardwareState().tagReaderVersion);
   });
-  ctrl.onReceive(S2COpcode::SORTER_SET_ANGLE, [](sim::Controller &c, S2CMessage const &msg) {
-    if (c.getHardwareState().sorterEnabled) c.getHardwareState().sorterAngle = msg.sorterSetAngle;
-  });
   ctrl.onReceive(S2COpcode::WIFI_SET_MODE, [](sim::Controller &c, S2CMessage const &msg) {
     if (c.getHardwareState().wifiEnabled) {
       c.getHardwareState().wifiMode = static_cast<sim::wifi_mode_t>(msg.wifiSetMode);

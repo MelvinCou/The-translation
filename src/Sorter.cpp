@@ -12,6 +12,7 @@ void Sorter::begin() {
   goPlus.Servo_write_plusewidth(SORTER_SERVO_NUMBER, SORTER_SERVO_PULSE_WIDTH);
   moveWithSpecificAngle(SORTER_SERVO_RIGHT_ANGLE);
   m_currentAngle = SORTER_SERVO_RIGHT_ANGLE;
+  m_desiredAngle = SORTER_SERVO_RIGHT_ANGLE;
 }
 
 void Sorter::moveWithSpecificAngle(int angle) {
